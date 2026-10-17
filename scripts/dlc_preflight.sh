@@ -3,12 +3,21 @@
 # Runs on a DLC worker that can see /mnt/nas-save. Does not start a paper-scale fit.
 set -euo pipefail
 
-ROOT=/mnt/nas-save/wangjunqi/j-lens-on-loop
-OURO_MODEL=/mnt/nas-save/wangjunqi/ouro/models/Ouro-2.6B
+# DSW mounts the NFS export /nas-save at /mnt/nas-save. A DLC DataSource for the
+# same NAS URI mounts the filesystem root, where that export is /mnt/nas-save/nas-save.
+NAS=/mnt/nas-save/nas-save
+ROOT=$NAS/wangjunqi/j-lens-on-loop
+OURO_MODEL=$NAS/wangjunqi/ouro/models/Ouro-2.6B
 HUGINN_MODEL=$ROOT/models/huginn-0125
-JLENS_SRC=/mnt/nas-save/wangjunqi/deps/jacobian-lens
+JLENS_SRC=$NAS/wangjunqi/deps/jacobian-lens
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 OUT=$ROOT/runs/dlc-smoke-$STAMP
+if [[ ! -f $ROOT/pyproject.toml || ! -f $OURO_MODEL/config.json || ! -f $JLENS_SRC/pyproject.toml ]]; then
+  echo "persistent paths are not visible"
+  ls -la /mnt/nas-save | head -40
+  ls -la "$NAS/wangjunqi" || true
+  exit 1
+fi
 mkdir -p "$OUT"
 exec > >(tee -a "$OUT/smoke.log") 2>&1
 
@@ -56,11 +65,14 @@ python3 scripts/fit_family.py huginn \
   --output "$OUT/huginn-validate" \
   --validate-only
 
+SMOKE_TEXT="The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog."
+
 echo "=== smoke fit ouro: 1 prompt, loop 1, 2 sources ==="
 python3 scripts/fit_family.py ouro \
   --model "$OURO_MODEL" \
   --output "$OUT/ouro-smoke" \
   --prompts 1 \
+  --text "$SMOKE_TEXT" \
   --targets 1 \
   --source-window 2 \
   --max-seq-len 32 \
@@ -72,6 +84,7 @@ python3 scripts/fit_family.py huginn \
   --model "$HUGINN_MODEL" \
   --output "$OUT/huginn-smoke" \
   --prompts 1 \
+  --text "$SMOKE_TEXT" \
   --targets 4 \
   --recurrences 16 \
   --source-window 2 \

@@ -10,9 +10,10 @@ from pathlib import Path
 import torch
 from datasets import load_dataset
 from jlens import configure_logging, fit
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
 from loop_jlens import HuginnLensModel, OuroLensModel, from_looped_hf, validate_adapter
+from loop_jlens.compat import ensure_pad_token_id
 
 MODELS = {
     "ouro": "ByteDance/Ouro-2.6B",
@@ -42,6 +43,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--device-map", default="auto")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--validate-only", action="store_true")
+    parser.add_argument(
+        "--text",
+        action="append",
+        default=None,
+        help="fit these prompts instead of streaming WikiText",
+    )
     return parser.parse_args()
 
 
@@ -113,11 +120,36 @@ def target_family(
     return family
 
 
+def configure_exact_forward() -> None:
+    """Prefer the deterministic attention kernels the Jacobian protocol needs."""
+
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    cuda_backends = getattr(torch.backends, "cuda", None)
+    if cuda_backends is None:
+        return
+    for name, enabled in (
+        ("enable_flash_sdp", False),
+        ("enable_mem_efficient_sdp", False),
+        ("enable_cudnn_sdp", False),
+        ("enable_math_sdp", True),
+    ):
+        toggle = getattr(cuda_backends, name, None)
+        if callable(toggle):
+            toggle(enabled)
+
+
 def load_model(args: argparse.Namespace):
     model_id = args.model or MODELS[args.architecture]
     tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
+    ensure_pad_token_id(config)
+    if args.architecture == "ouro":
+        # The published Ouro class dispatches to flash/sdpa unless this is eager.
+        config._attn_implementation = "eager"
     hf_model = AutoModelForCausalLM.from_pretrained(
         model_id,
+        config=config,
         trust_remote_code=True,
         torch_dtype=torch.bfloat16,
         device_map=args.device_map,
@@ -135,6 +167,7 @@ def load_model(args: argparse.Namespace):
 if __name__ == "__main__":
     ARGS = parse_args()
     configure_logging()
+    configure_exact_forward()
     torch.manual_seed(ARGS.seed)
     model_id, tokenizer, model = load_model(ARGS)
     report = validate_adapter(
@@ -147,7 +180,7 @@ if __name__ == "__main__":
         raise SystemExit(0)
 
     ARGS.output.mkdir(parents=True, exist_ok=True)
-    prompts = corpus_prompts(tokenizer, ARGS.prompts, ARGS.max_seq_len)
+    prompts = ARGS.text or corpus_prompts(tokenizer, ARGS.prompts, ARGS.max_seq_len)
     metadata = {
         "model": model_id,
         "architecture": ARGS.architecture,

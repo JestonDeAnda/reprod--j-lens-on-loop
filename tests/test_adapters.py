@@ -6,7 +6,7 @@ import torch
 from torch import nn
 
 from loop_jlens import HuginnLensModel, OuroLensModel, validate_adapter
-from loop_jlens.compat import default_rope_parameters, install_runtime_compat
+from loop_jlens.compat import default_rope_parameters, ensure_pad_token_id, install_runtime_compat
 
 
 class Tokenizer:
@@ -130,6 +130,19 @@ def test_huginn_replicated_batch_shares_one_latent_init():
     for activation in recorder.activations.values():
         assert torch.equal(activation[0], activation[1])
         assert torch.equal(activation[0], activation[2])
+
+
+def test_missing_pad_token_id_is_defined_as_none():
+    class Config:
+        pass
+
+    config = Config()
+    ensure_pad_token_id(config)
+    assert config.pad_token_id is None
+
+    config.pad_token_id = 65509
+    ensure_pad_token_id(config)
+    assert config.pad_token_id == 65509
 
 
 def test_default_rope_parameters_match_original_formula():

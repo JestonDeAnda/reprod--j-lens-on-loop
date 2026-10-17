@@ -29,6 +29,20 @@ def default_rope_parameters(config, device=None, seq_len=None, layer_type=None):
     return inv_freq, 1.0
 
 
+def ensure_pad_token_id(config) -> None:
+    """Define ``pad_token_id`` when a remote config never set it.
+
+    transformers 5 raises ``AttributeError`` on a missing attribute instead of
+    returning ``None``. ByteDance/Ouro-2.6B publishes bos/eos and no pad id.
+    ``None`` tells ``nn.Embedding`` not to zero any token row.
+    """
+
+    try:
+        _ = config.pad_token_id
+    except AttributeError:
+        config.pad_token_id = None
+
+
 def install_runtime_compat() -> None:
     """Install process-wide shims. Safe to call more than once."""
 
