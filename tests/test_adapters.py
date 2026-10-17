@@ -6,6 +6,7 @@ import torch
 from torch import nn
 
 from loop_jlens import HuginnLensModel, OuroLensModel, validate_adapter
+from loop_jlens.compat import default_rope_parameters, install_runtime_compat
 
 
 class Tokenizer:
@@ -71,11 +72,16 @@ class ToyHuginn(nn.Module):
         self.lm_head = nn.Linear(width, 16, bias=False)
         self.gradient_checkpointing = False
 
+    def initialize_state(self, input_embeds, scale: float = 1.0):
+        # Matches tomg-group-umd/huginn-0125: one independent draw per batch row.
+        del scale
+        return torch.randn_like(input_embeds)
+
     def forward(self, input_ids, num_steps, use_cache=False):
         hidden = self.transformer.wte(input_ids)
         for block in self.transformer.prelude:
             hidden = block(hidden)
-        state = torch.randn_like(hidden)
+        state = self.initialize_state(hidden)
         no_grad_steps, grad_steps = num_steps
         with torch.no_grad():
             for _ in range(no_grad_steps):
@@ -111,3 +117,51 @@ def test_huginn_disables_test_time_noise():
     model = ToyHuginn()
     HuginnLensModel(model, Tokenizer(), recurrences=2)
     assert model.config.test_time_noise == 0
+
+
+def test_huginn_replicated_batch_shares_one_latent_init():
+    from jlens.hooks import ActivationRecorder
+
+    adapter = HuginnLensModel(ToyHuginn(), Tokenizer(), recurrences=2, seed=5)
+    ids = torch.tensor([[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]])
+    recorded = list(range(adapter.n_layers))
+    with torch.no_grad(), ActivationRecorder(adapter.layers, at=recorded) as recorder:
+        adapter.forward(ids)
+    for activation in recorder.activations.values():
+        assert torch.equal(activation[0], activation[1])
+        assert torch.equal(activation[0], activation[2])
+
+
+def test_default_rope_parameters_match_original_formula():
+    config = SimpleNamespace(rope_theta=10000.0, hidden_size=32, num_attention_heads=4, head_dim=8)
+    inv_freq, scale = default_rope_parameters(config)
+    exponent = torch.arange(0, 8, 2, dtype=torch.float) / 8
+    expected = 1.0 / (10000.0 ** exponent)
+    assert scale == 1.0
+    assert torch.allclose(inv_freq, expected)
+
+
+def test_ouro_remote_rotary_init_does_not_require_library_method():
+    from transformers.modeling_utils import PreTrainedModel
+
+    install_runtime_compat()
+
+    class RemoteRotaryEmbedding(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.rope_type = "default"
+            self.config = SimpleNamespace(
+                rope_theta=10000.0,
+                hidden_size=32,
+                num_attention_heads=4,
+                head_dim=8,
+            )
+            self.register_buffer("inv_freq", torch.zeros(4))
+            self.register_buffer("original_inv_freq", torch.zeros(4))
+
+    module = RemoteRotaryEmbedding()
+    host = SimpleNamespace(config=SimpleNamespace(initializer_range=0.02))
+    PreTrainedModel._init_weights(host, module)
+    expected, _ = default_rope_parameters(module.config)
+    assert torch.allclose(module.inv_freq, expected)
+    assert torch.allclose(module.original_inv_freq, expected)

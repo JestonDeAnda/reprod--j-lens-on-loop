@@ -75,7 +75,9 @@ python scripts/fit_family.py huginn \
 Each target is checkpointed independently and resumes after interruption.
 For a cheaper pilot, omit `--full-sources`; this retains only the two-core-
 iteration window nearest each target. The pilot can validate plumbing and the
-local transport horizon but cannot support full-depth claims.
+local transport horizon but cannot support full-depth claims. `--source-window N`
+shrinks that window further to the N sources nearest the target, which is only
+a plumbing check.
 
 To complete the 16-target Huginn tiling:
 

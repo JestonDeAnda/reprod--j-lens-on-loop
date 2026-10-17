@@ -166,6 +166,7 @@ class HuginnLensModel(_VirtualLensModel):
         hf_model.gradient_checkpointing = False
         if hasattr(hf_model.config, "test_time_noise"):
             hf_model.config.test_time_noise = 0
+        _share_replicated_latent_state(hf_model)
 
         for index, block in enumerate(prelude):
             self._physical.append((block, lambda firing, i=index: i))
@@ -207,6 +208,27 @@ class HuginnLensModel(_VirtualLensModel):
                 num_steps=(0, self.recurrences),
                 use_cache=False,
             )
+
+
+def _share_replicated_latent_state(hf_model: nn.Module) -> None:
+    """Draw Huginn's latent init once and copy it across a replicated batch.
+
+    ``jlens.fit`` expands one prompt along the batch axis and treats every row
+    as the same function. The remote ``initialize_state`` draws ``randn_like``
+    noise independently per row, so those rows would be different Jacobians.
+    """
+
+    if not hasattr(hf_model, "initialize_state"):
+        return
+    original = hf_model.initialize_state
+
+    def initialize_state(input_embeds: torch.Tensor, scale: float = 1.0) -> torch.Tensor:
+        if input_embeds.shape[0] <= 1:
+            return original(input_embeds, scale)
+        prototype = original(input_embeds[:1], scale)
+        return prototype.expand(input_embeds.shape[0], -1, -1).clone()
+
+    hf_model.initialize_state = initialize_state
 
 
 def from_looped_hf(

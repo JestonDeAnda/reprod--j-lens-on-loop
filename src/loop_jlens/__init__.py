@@ -6,7 +6,10 @@ from loop_jlens.adapters import (
     VirtualBlock,
     from_looped_hf,
 )
+from loop_jlens.compat import install_runtime_compat
 from loop_jlens.validation import ValidationReport, validate_adapter
+
+install_runtime_compat()
 
 __all__ = [
     "HuginnLensModel",
