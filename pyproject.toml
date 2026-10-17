@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loop-jlens"
+version = "0.1.0"
+description = "Reproduction harness for Jacobian lenses on looped transformers"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "torch>=2.4",
+    "transformers>=4.48,<6",
+    "huggingface-hub>=0.27",
+    "numpy>=1.26",
+    "jlens @ git+https://github.com/anthropics/jacobian-lens.git@581d398613e5602a5af361e1c34d3a92ea82ba8e",
+]
+
+[project.optional-dependencies]
+experiments = ["datasets>=3.2", "pyyaml>=6.0", "tqdm>=4.67"]
+dev = ["pytest>=8.3", "ruff>=0.9"]
+
+[project.urls]
+Repository = "https://github.com/JestonDeAnda/reprod--j-lens-on-loop"
+Paper = "https://arxiv.org/abs/2609.01924"
+Upstream = "https://github.com/anthropics/jacobian-lens"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]

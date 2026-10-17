@@ -1,0 +1,28 @@
+paper:
+  arxiv_id: "2609.01924v1"
+  fit_corpus: "Salesforce/wikitext:wikitext-103-raw-v1"
+  prompts: 1000
+  sequence_length: 128
+  skip_first_positions: 16
+  dtype: bfloat16
+
+models:
+  ouro:
+    id: ByteDance/Ouro-2.6B
+    loops: 4
+    targets: [1, 2, 3, 4]
+    # Physical depth is discovered from the checkpoint. The paper reports 48;
+    # the public model card has also reported 24, so hard-coding is unsafe.
+  huginn:
+    id: tomg-group-umd/huginn-0125
+    recurrences: 16
+    causal_targets: [4, 8, 12, 16]
+    readout_targets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+
+validation:
+  deterministic: true
+  every_virtual_layer_fires_once: true
+  nonzero_gradient_everywhere: true
+  gradient_checkpointing: false
+  huginn_num_steps: [0, 16]
+  huginn_test_time_noise: 0

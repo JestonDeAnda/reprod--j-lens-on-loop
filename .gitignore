@@ -1,0 +1,10 @@
+.venv/
+.upstream-jlens/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+artifacts/
+*.checkpoint.pt
+*.lens.pt
+.DS_Store
