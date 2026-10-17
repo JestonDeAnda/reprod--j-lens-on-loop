@@ -6,7 +6,12 @@ import torch
 from torch import nn
 
 from loop_jlens import HuginnLensModel, OuroLensModel, validate_adapter
-from loop_jlens.compat import default_rope_parameters, ensure_pad_token_id, install_runtime_compat
+from loop_jlens.compat import (
+    default_rope_parameters,
+    ensure_pad_token_id,
+    install_runtime_compat,
+    legacy_tied_weight_mapping,
+)
 
 
 class Tokenizer:
@@ -143,6 +148,50 @@ def test_missing_pad_token_id_is_defined_as_none():
     config.pad_token_id = 65509
     ensure_pad_token_id(config)
     assert config.pad_token_id == 65509
+
+
+def test_legacy_tied_weight_list_points_at_input_embedding():
+    class Host(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.transformer = nn.Module()
+            self.transformer.wte = nn.Embedding(4, 2)
+
+        def get_input_embeddings(self):
+            return self.transformer.wte
+
+    assert legacy_tied_weight_mapping(Host(), ["lm_head.weight"]) == {
+        "lm_head.weight": "transformer.wte.weight"
+    }
+
+
+def test_legacy_tied_weight_list_survives_transformers_post_init():
+    from transformers import PretrainedConfig, PreTrainedModel
+
+    install_runtime_compat()
+
+    class ToyConfig(PretrainedConfig):
+        model_type = "toy-tied"
+
+        def __init__(self, **kwargs):
+            super().__init__(tie_word_embeddings=True, **kwargs)
+
+    class ToyTied(PreTrainedModel):
+        config_class = ToyConfig
+        _tied_weights_keys = ["lm_head.weight"]
+
+        def __init__(self, config):
+            super().__init__(config)
+            self.wte = nn.Embedding(8, 4)
+            self.lm_head = nn.Linear(4, 8, bias=False)
+            self.post_init()
+
+        def get_input_embeddings(self):
+            return self.wte
+
+    model = ToyTied(ToyConfig())
+    assert model.all_tied_weights_keys["lm_head.weight"] == "wte.weight"
+    assert model.lm_head.weight.data_ptr() == model.wte.weight.data_ptr()
 
 
 def test_default_rope_parameters_match_original_formula():

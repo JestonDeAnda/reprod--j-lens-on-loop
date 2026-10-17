@@ -43,6 +43,26 @@ def ensure_pad_token_id(config) -> None:
         config.pad_token_id = None
 
 
+def legacy_tied_weight_mapping(model, keys: list) -> dict[str, str]:
+    """Map the transformers 4 list form onto the transformers 5 ``{target: source}`` dict.
+
+    The published Huginn and Ouro classes still say ``_tied_weights_keys =
+    ["lm_head.weight"]``, which meant "tie this matrix to the input embedding".
+    """
+
+    embedding = model.get_input_embeddings()
+    if embedding is None:
+        raise AttributeError("legacy tied-weight list requires get_input_embeddings()")
+    source = None
+    for name, module in model.named_modules():
+        if module is embedding:
+            source = "weight" if name == "" else f"{name}.weight"
+            break
+    if source is None:
+        raise AttributeError("input embedding module is not registered on the model")
+    return {key: source for key in keys}
+
+
 def install_runtime_compat() -> None:
     """Install process-wide shims. Safe to call more than once."""
 
@@ -70,5 +90,24 @@ def install_runtime_compat() -> None:
 
         _init_weights._loop_jlens_wrapped = True
         PreTrainedModel._init_weights = _init_weights
+
+    expand = PreTrainedModel.get_expanded_tied_weights_keys
+    if not getattr(expand, "_loop_jlens_wrapped", False):
+
+        def get_expanded_tied_weights_keys(self, all_submodels: bool = False):
+            mapping = getattr(self, "_tied_weights_keys", None)
+            if (
+                isinstance(mapping, list)
+                and not all_submodels
+                and getattr(self.config, "tie_word_embeddings", False)
+            ):
+                converted = legacy_tied_weight_mapping(self, mapping)
+                self._tied_weights_keys = converted
+                if isinstance(getattr(type(self), "_tied_weights_keys", None), list):
+                    type(self)._tied_weights_keys = converted
+            return expand(self, all_submodels=all_submodels)
+
+        get_expanded_tied_weights_keys._loop_jlens_wrapped = True
+        PreTrainedModel.get_expanded_tied_weights_keys = get_expanded_tied_weights_keys
 
     _INSTALLED = True
