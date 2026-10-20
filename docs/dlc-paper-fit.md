@@ -20,11 +20,28 @@ Same image / quota family as the successful preflight `dlc1au579n35631v`
 (`nemo:26.06`, `quota746juyotckp`, 1×GPU / 16 CPU / 64Gi / 16Gi shm).
 `JobMaxRunningTimeMinutes=43200`. Workers observed so far are NVIDIA L20D.
 
-| Stage | Job id | Targets | Status (launch) |
+| Stage | Job id | Targets | Status |
 | --- | --- | --- | --- |
-| ouro | `dlcgake1793hluil` | loops 1–4, full sources, 1000 prompts | EnvPreparing → Running (install) |
-| huginn-primary | `dlcgkjzezie0uuq8` | r=4/8/12/16, full sources | EnvPreparing |
-| huginn-tiling | `dlcgkjzez9j7x6fi` | r=1…16, full sources | EnvPreparing |
+| ouro | `dlcgake1793hluil` | loops 1–4, full sources, 1000 prompts | Running on L20D |
+| huginn-primary | `dlcgkjzezie0uuq8` | r=4/8/12/16, full sources | Running on L20D |
+| huginn-tiling | `dlcgkjzez9j7x6fi` | r=1…16, full sources | Running on L20D |
+
+### Progress snapshot (2026-10-20 ~15:08 UTC / 23:08 CST)
+
+Completed `*.lens.pt` so far:
+
+- `ouro-paper/loop-1.lens.pt`
+- `huginn-primary/recurrence-4.lens.pt`
+- `huginn-tiling/recurrence-{1,2,3}.lens.pt`
+
+Active checkpoints (still writing):
+
+- `ouro-paper/loop-2.checkpoint.pt`
+- `huginn-primary/recurrence-8.checkpoint.pt`
+- `huginn-tiling/recurrence-4.checkpoint.pt`
+
+The first DSW monitor agent exited after Cursor API reconnect failures; jobs kept
+running independently. A new `jlens-paper` tmux monitor was restarted.
 
 Command template:
 
