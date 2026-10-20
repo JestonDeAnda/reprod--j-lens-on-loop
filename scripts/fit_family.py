@@ -49,10 +49,30 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="fit these prompts instead of streaming WikiText",
     )
+    parser.add_argument(
+        "--prompt-cache",
+        type=Path,
+        default=None,
+        help="JSON list of prompts; created on first WikiText build, reused later",
+    )
     return parser.parse_args()
 
 
-def corpus_prompts(tokenizer, count: int, length: int) -> list[str]:
+def corpus_prompts(
+    tokenizer,
+    count: int,
+    length: int,
+    *,
+    cache_path: Path | None = None,
+) -> list[str]:
+    if cache_path is not None and cache_path.exists():
+        prompts = json.loads(cache_path.read_text())
+        if len(prompts) < count:
+            raise RuntimeError(
+                f"prompt cache {cache_path} has {len(prompts)} prompts, need {count}"
+            )
+        return prompts[:count]
+
     dataset = load_dataset(
         "Salesforce/wikitext", "wikitext-103-raw-v1", split="train", streaming=True
     )
@@ -67,6 +87,9 @@ def corpus_prompts(tokenizer, count: int, length: int) -> list[str]:
             chunk, token_buffer = token_buffer[:length], token_buffer[length:]
             prompts.append(tokenizer.decode(chunk))
         if len(prompts) == count:
+            if cache_path is not None:
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                cache_path.write_text(json.dumps(prompts) + "\n")
             return prompts
     raise RuntimeError(f"WikiText yielded only {len(prompts)} prompts")
 
@@ -180,7 +203,12 @@ if __name__ == "__main__":
         raise SystemExit(0)
 
     ARGS.output.mkdir(parents=True, exist_ok=True)
-    prompts = ARGS.text or corpus_prompts(tokenizer, ARGS.prompts, ARGS.max_seq_len)
+    cache = ARGS.prompt_cache
+    if cache is None and ARGS.text is None:
+        cache = ARGS.output / f"wikitext-{ARGS.prompts}x{ARGS.max_seq_len}.json"
+    prompts = ARGS.text or corpus_prompts(
+        tokenizer, ARGS.prompts, ARGS.max_seq_len, cache_path=cache
+    )
     metadata = {
         "model": model_id,
         "architecture": ARGS.architecture,
@@ -190,6 +218,8 @@ if __name__ == "__main__":
         "skip_first": ARGS.skip_first,
         "seed": ARGS.seed,
         "source_window": ARGS.source_window,
+        "full_sources": ARGS.full_sources,
+        "prompt_cache": str(cache) if cache is not None else None,
     }
     (ARGS.output / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n")
 

@@ -54,12 +54,13 @@ guardrails.
 - [x] Huginn virtual-unrolling adapter
 - [x] Determinism, hook-routing, and gradient-flow preflight
 - [x] Resumable family fitting on WikiText-103
-- [ ] Paper-scale lens artefacts
-- [ ] Transport/readout figures
+- [x] DLC paper-fit launcher (`scripts/dlc_paper_fit.sh`)
+- [ ] Paper-scale lens artefacts (Ouro + Huginn primary + tiling)
+- [ ] Transport/readout analysis on fitted lenses
 - [ ] Eleven causal experiment families
 
-Unchecked items require model weights and GPU compute. No paper result is
-claimed reproduced until its raw artefact and verification output are saved.
+Unchecked items require GPU DLC jobs. No paper result is claimed reproduced
+until its raw artefact and verification output are saved.
 
 ## Attribution
 
