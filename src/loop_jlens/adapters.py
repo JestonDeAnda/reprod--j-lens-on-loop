@@ -134,6 +134,39 @@ class OuroLensModel(_VirtualLensModel):
             return self._hf_model.model(input_ids=input_ids, use_cache=False)
 
 
+class NanbeigeLensModel(_VirtualLensModel):
+    """Expose Nanbeige's shared decoder stack once per configured loop."""
+
+    def __init__(self, hf_model: nn.Module, tokenizer: Any) -> None:
+        super().__init__(hf_model, tokenizer)
+        text_model = hf_model.model
+        physical_layers: Sequence[nn.Module] = text_model.layers
+        self.n_physical_layers = len(physical_layers)
+        self.n_loops = int(hf_model.config.num_loops)
+        if self.n_loops < 1:
+            raise ValueError("Nanbeige num_loops must be positive")
+        self.n_layers = self.n_physical_layers * self.n_loops
+        self.d_model = int(hf_model.config.hidden_size)
+        self.layers = nn.ModuleList(VirtualBlock() for _ in range(self.n_layers))
+        self._embed_tokens = text_model.embed_tokens
+        self._final_norm = text_model.norm
+        self._lm_head = hf_model.lm_head
+        text_model.gradient_checkpointing = False
+
+        for physical_index, block in enumerate(physical_layers):
+            self._physical.append(
+                (
+                    block,
+                    lambda firing, i=physical_index: firing * self.n_physical_layers + i,
+                )
+            )
+            self._expected_firings.append(self.n_loops)
+
+    def forward(self, input_ids: torch.Tensor) -> Any:
+        with self._route_virtual_blocks():
+            return self._hf_model.model(input_ids=input_ids, use_cache=False)
+
+
 class HuginnLensModel(_VirtualLensModel):
     """Expose Huginn's prelude + recurrent core + coda as virtual depth."""
 
@@ -238,11 +271,13 @@ def from_looped_hf(
     architecture: str = "auto",
     recurrences: int = 16,
     seed: int = 0,
-) -> OuroLensModel | HuginnLensModel:
+) -> OuroLensModel | HuginnLensModel | NanbeigeLensModel:
     """Create the appropriate virtual-unrolling adapter for a loaded model."""
 
     if architecture == "auto":
-        if hasattr(getattr(hf_model, "model", None), "total_ut_steps"):
+        if getattr(getattr(hf_model, "config", None), "model_type", None) == "nanbeige":
+            architecture = "nanbeige"
+        elif hasattr(getattr(hf_model, "model", None), "total_ut_steps"):
             architecture = "ouro"
         elif hasattr(getattr(hf_model, "transformer", None), "core_block"):
             architecture = "huginn"
@@ -250,8 +285,10 @@ def from_looped_hf(
             raise ValueError(f"cannot identify looped architecture {type(hf_model).__name__}")
     if architecture == "ouro":
         return OuroLensModel(hf_model, tokenizer)
+    if architecture == "nanbeige":
+        return NanbeigeLensModel(hf_model, tokenizer)
     if architecture == "huginn":
         return HuginnLensModel(
             hf_model, tokenizer, recurrences=recurrences, seed=seed
         )
-    raise ValueError("architecture must be one of: auto, ouro, huginn")
+    raise ValueError("architecture must be one of: auto, ouro, huginn, nanbeige")

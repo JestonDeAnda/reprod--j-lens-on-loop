@@ -12,12 +12,19 @@ from datasets import load_dataset
 from jlens import configure_logging, fit
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from loop_jlens import HuginnLensModel, OuroLensModel, from_looped_hf, validate_adapter
+from loop_jlens import (
+    HuginnLensModel,
+    NanbeigeLensModel,
+    OuroLensModel,
+    from_looped_hf,
+    validate_adapter,
+)
 from loop_jlens.compat import ensure_pad_token_id
 
 MODELS = {
     "ouro": "ByteDance/Ouro-2.6B",
     "huginn": "tomg-group-umd/huginn-0125",
+    "nanbeige": "Nanbeige/Nanbeige4.2-3B",
 }
 
 
@@ -109,7 +116,7 @@ def target_family(
     full_sources: bool,
     source_window: int | None = None,
 ) -> list[tuple[str, int, list[int]]]:
-    if isinstance(model, OuroLensModel):
+    if isinstance(model, (OuroLensModel, NanbeigeLensModel)):
         loops = requested or list(range(1, model.n_loops + 1))
         family = []
         for loop in loops:

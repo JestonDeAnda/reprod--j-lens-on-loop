@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import torch
 from torch import nn
 
-from loop_jlens import HuginnLensModel, OuroLensModel, validate_adapter
+from loop_jlens import HuginnLensModel, NanbeigeLensModel, OuroLensModel, validate_adapter
 from loop_jlens.compat import (
     default_rope_parameters,
     ensure_pad_token_id,
@@ -61,6 +61,18 @@ class ToyOuro(nn.Module):
         self.lm_head = nn.Linear(4, 16, bias=False)
 
 
+class ToyNanbeige(nn.Module):
+    def __init__(self, width=4, physical=3, loops=2):
+        super().__init__()
+        self.config = SimpleNamespace(
+            hidden_size=width,
+            model_type="nanbeige",
+            num_loops=loops,
+        )
+        self.model = ToyOuroBody(width=width, physical=physical, loops=loops)
+        self.lm_head = nn.Linear(width, 16, bias=False)
+
+
 class ToyHuginn(nn.Module):
     def __init__(self, width=4):
         super().__init__()
@@ -103,6 +115,14 @@ class ToyHuginn(nn.Module):
 
 def test_ouro_virtual_depth_and_validation():
     adapter = OuroLensModel(ToyOuro(), Tokenizer())
+    assert adapter.n_layers == 6
+    report = validate_adapter(adapter, "a sufficiently long prompt", max_seq_len=24)
+    assert report.virtual_layers == 6
+    assert report.nonzero_gradients
+
+
+def test_nanbeige_virtual_depth_and_validation():
+    adapter = NanbeigeLensModel(ToyNanbeige(), Tokenizer())
     assert adapter.n_layers == 6
     report = validate_adapter(adapter, "a sufficiently long prompt", max_seq_len=24)
     assert report.virtual_layers == 6

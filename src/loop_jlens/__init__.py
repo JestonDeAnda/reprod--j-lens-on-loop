@@ -2,6 +2,7 @@
 
 from loop_jlens.adapters import (
     HuginnLensModel,
+    NanbeigeLensModel,
     OuroLensModel,
     VirtualBlock,
     from_looped_hf,
@@ -13,6 +14,7 @@ install_runtime_compat()
 
 __all__ = [
     "HuginnLensModel",
+    "NanbeigeLensModel",
     "OuroLensModel",
     "ValidationReport",
     "VirtualBlock",
