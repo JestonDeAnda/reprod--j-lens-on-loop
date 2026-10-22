@@ -91,8 +91,8 @@ def install_runtime_compat() -> None:
         _init_weights._loop_jlens_wrapped = True
         PreTrainedModel._init_weights = _init_weights
 
-    expand = PreTrainedModel.get_expanded_tied_weights_keys
-    if not getattr(expand, "_loop_jlens_wrapped", False):
+    expand = getattr(PreTrainedModel, "get_expanded_tied_weights_keys", None)
+    if expand is not None and not getattr(expand, "_loop_jlens_wrapped", False):
 
         def get_expanded_tied_weights_keys(self, all_submodels: bool = False):
             mapping = getattr(self, "_tied_weights_keys", None)
