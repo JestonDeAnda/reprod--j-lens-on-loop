@@ -45,7 +45,8 @@ python scripts/fit_family.py huginn \
 
 See [the reproduction protocol](docs/reproduction.md) for scope, exact
 settings, validation criteria, resource expectations, and interpretation
-guardrails.
+guardrails. The approved post-fit work is recorded in the
+[experiment plan](docs/experiment-plan.md).
 
 ## Status
 
