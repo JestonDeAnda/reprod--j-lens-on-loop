@@ -3,7 +3,7 @@
 set -euo pipefail
 
 NAS=/mnt/nas-save/nas-save
-ROOT=$NAS/wangjunqi/j-lens-on-loop
+ROOT=${ROOT:-$NAS/wangjunqi/j-lens-on-loop-nanbeige}
 MODEL=$ROOT/models/Nanbeige4.2-3B
 JLENS_SRC=$NAS/wangjunqi/deps/jacobian-lens
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
