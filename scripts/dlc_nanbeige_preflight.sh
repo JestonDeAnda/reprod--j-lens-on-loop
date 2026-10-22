@@ -36,7 +36,7 @@ export TOKENIZERS_PARALLELISM=false
 export PYTHONUNBUFFERED=1
 
 python3 -m pip install --upgrade-strategy only-if-needed -e "$JLENS_SRC"
-python3 -m pip install "transformers==4.45.1" datasets pyyaml tqdm
+python3 -m pip install "transformers==4.45.1" "accelerate>=0.26" datasets pyyaml tqdm
 python3 -m pip install --upgrade-strategy only-if-needed -e "$ROOT" --no-deps
 
 if [[ ! -f $MODEL/config.json ]]; then
