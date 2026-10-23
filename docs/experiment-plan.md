@@ -145,11 +145,16 @@ check; no nearby Qwen checkpoint may be substituted without changing the claim.
 
 ## DLC execution policy
 
-Use Priority 1 and one GPU per job unless separately approved. CPU jobs handle
-artefact verification and statistics. GPU pilots precede paper-scale runs.
-Each submitted job uses the required `fsNNNN-wangjunqi-stage-content-sequence`
-name and records its PAI JobId, code commit, resource shape, expected and actual
-runtime, status, and durable artefact paths.
+Use Priority 1 and one GPU per job unless separately approved. At most three
+GPUs may be reserved concurrently across this reproduction. Subsequent jobs use
+Feishu task ID `0183` and the required
+`fs0183-wangjunqi-stage-content-sequence` name. CPU jobs handle artefact
+verification and statistics. GPU pilots precede paper-scale runs. Compatible
+small experiments should be bundled sequentially into one single-GPU DLC job;
+independent jobs do not share a reserved GPU, and concurrent models must not be
+co-located when their combined weights, activations, or hooks risk interference.
+Every job records its PAI JobId, code commit, resource shape, expected and
+actual runtime, status, and durable artefact paths.
 
 Suggested execution order:
 
