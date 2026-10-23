@@ -7,6 +7,7 @@ from loop_jlens import HuginnLensModel, OuroLensModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import fit_family  # noqa: E402
+import fit_qwen  # noqa: E402
 
 from tests.test_adapters import Tokenizer, ToyHuginn, ToyOuro  # noqa: E402
 
@@ -30,3 +31,12 @@ def test_source_window_rejects_non_positive():
         assert "positive" in str(exc)
     else:
         raise AssertionError("expected ValueError")
+
+
+def test_qwen_target_geometry_matches_paper():
+    model = type("Model", (), {"n_layers": 64})()
+    family = fit_qwen.target_family(model, ["final", "band-entry"], None)
+    assert family == [
+        ("final", 63, list(range(63))),
+        ("band-entry", 24, list(range(24))),
+    ]
