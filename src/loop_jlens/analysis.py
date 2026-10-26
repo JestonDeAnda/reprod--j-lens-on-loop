@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
 
 Matvec = Callable[[Tensor], Tensor]
@@ -190,4 +191,34 @@ def hutchinson_comparison(
         "right_frobenius": right_squared**0.5,
         "error_frobenius": error_squared**0.5,
         "matrix_cosine": inner_product / denominator if denominator else 0.0,
+    }
+
+
+def readout_metrics(candidate_logits: Tensor, target_logits: Tensor) -> dict[str, float]:
+    """Compare a transported or logit-lens readout with target-layer logits."""
+
+    if candidate_logits.shape != target_logits.shape:
+        raise ValueError(
+            "candidate and target logits must have the same shape, got "
+            f"{tuple(candidate_logits.shape)} and {tuple(target_logits.shape)}"
+        )
+    if candidate_logits.ndim != 2:
+        raise ValueError("readout logits must have shape [n_positions, vocab_size]")
+    candidate = candidate_logits.detach().float()
+    target = target_logits.detach().float()
+    candidate_log_probs = F.log_softmax(candidate, dim=-1)
+    target_log_probs = F.log_softmax(target, dim=-1)
+    target_probs = target_log_probs.exp()
+    target_top1 = target.argmax(dim=-1)
+    candidate_top1 = candidate.argmax(dim=-1)
+    target_scores = candidate.gather(-1, target_top1[:, None])
+    target_ranks = 1 + (candidate > target_scores).sum(dim=-1)
+    kl = torch.sum(target_probs * (target_log_probs - candidate_log_probs), dim=-1)
+    cosine = F.cosine_similarity(candidate, target, dim=-1)
+    return {
+        "positions": float(candidate.shape[0]),
+        "top1_agreement": (candidate_top1 == target_top1).float().mean().item(),
+        "target_top1_mean_rank": target_ranks.float().mean().item(),
+        "target_to_candidate_kl": kl.mean().item(),
+        "logit_cosine": cosine.mean().item(),
     }

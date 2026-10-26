@@ -6,6 +6,7 @@ from loop_jlens.analysis import (
     estimate_operator_norm,
     frobenius_over_sqrt_d,
     matrix_cosine,
+    readout_metrics,
     singular_subspace_overlap,
 )
 
@@ -49,3 +50,24 @@ def test_singular_subspace_overlap_for_same_matrix() -> None:
 
     assert overlap["left_overlap"] == pytest.approx(1.0, abs=2e-4)
     assert overlap["right_overlap"] == pytest.approx(1.0, abs=2e-4)
+
+
+def test_readout_metrics_identical_logits() -> None:
+    logits = torch.tensor([[1.0, 4.0, 2.0], [5.0, 1.0, -1.0]])
+    metrics = readout_metrics(logits, logits)
+
+    assert metrics["positions"] == 2
+    assert metrics["top1_agreement"] == 1.0
+    assert metrics["target_top1_mean_rank"] == 1.0
+    assert metrics["target_to_candidate_kl"] == pytest.approx(0.0, abs=1e-7)
+    assert metrics["logit_cosine"] == pytest.approx(1.0)
+
+
+def test_readout_metrics_reports_rank_and_kl() -> None:
+    target = torch.tensor([[0.0, 3.0, 1.0]])
+    candidate = torch.tensor([[4.0, 0.0, 2.0]])
+    metrics = readout_metrics(candidate, target)
+
+    assert metrics["top1_agreement"] == 0.0
+    assert metrics["target_top1_mean_rank"] == 3.0
+    assert metrics["target_to_candidate_kl"] > 0
