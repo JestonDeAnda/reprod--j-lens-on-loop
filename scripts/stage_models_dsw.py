@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import re
 import shutil
 from pathlib import Path
 
@@ -78,7 +80,58 @@ def is_complete(directory: Path) -> bool:
     expected = expected_weight_files(directory)
     if expected:
         return all((directory / name).is_file() for name in expected)
-    return any(directory.glob("*.safetensors"))
+    weights = list(directory.glob("*.safetensors"))
+    shard_pattern = re.compile(r".+-(\d+)-of-(\d+)\.safetensors$")
+    shard_matches = [shard_pattern.fullmatch(path.name) for path in weights]
+    if any(shard_matches):
+        if not all(shard_matches):
+            return False
+        totals = {int(match.group(2)) for match in shard_matches if match}
+        indexes = {int(match.group(1)) for match in shard_matches if match}
+        return len(totals) == 1 and indexes == set(range(1, next(iter(totals)) + 1))
+    return bool(weights)
+
+
+def download_model(model_id: str, destination: Path) -> None:
+    if model_id == "ByteDance/Ouro-2.6B-Thinking":
+        from huggingface_hub import HfApi, snapshot_download
+
+        os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+        revision = HfApi().model_info(model_id).sha
+        print(f"downloading {model_id} from Hugging Face revision {revision}", flush=True)
+        snapshot_download(
+            repo_id=model_id,
+            revision=revision,
+            local_dir=destination,
+        )
+        (destination / "source.json").write_text(
+            json.dumps(
+                {
+                    "provider": "huggingface",
+                    "model_id": model_id,
+                    "revision": revision,
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+        return
+
+    from modelscope import snapshot_download
+
+    print(f"downloading {model_id} from ModelScope into {destination}", flush=True)
+    snapshot_download(model_id, local_dir=str(destination))
+    (destination / "source.json").write_text(
+        json.dumps(
+            {
+                "provider": "modelscope",
+                "model_id": model_id,
+                "revision": "master",
+            },
+            indent=2,
+        )
+        + "\n"
+    )
 
 
 def sha256(path: Path) -> str:
@@ -127,10 +180,7 @@ def main() -> None:
         if source is not None and source.exists():
             copy_cached_files(source, destination)
         if download_if_incomplete and not is_complete(destination):
-            from modelscope import snapshot_download
-
-            print(f"downloading {model_id} into {destination}", flush=True)
-            snapshot_download(model_id, local_dir=str(destination))
+            download_model(model_id, destination)
         print(
             f"model={model_id} complete={is_complete(destination)}",
             flush=True,
