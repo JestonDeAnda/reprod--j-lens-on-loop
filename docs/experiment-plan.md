@@ -63,6 +63,12 @@ transport analyser to produce raw JSON for:
 7. Huginn's sliding readout window under the complete tiling.
 
 Comparisons across models or targets must match source-to-target distance.
+Every matrix transport report must include the operator/spectral 2-norm as a
+primary metric, together with the estimation method, iteration count,
+convergence flag, and residual or relative-change diagnostic. Exact SVD may be
+used for small matrices; full model matrices use deterministic power iteration.
+The dimension-normalised Frobenius norm (`||J||_F / sqrt(d)`) and stable rank
+are retained as auxiliary metrics and must not substitute for operator norm.
 
 ## Stage 2: shared causal engine
 
