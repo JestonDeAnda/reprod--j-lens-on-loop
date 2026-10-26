@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>J-Lens 复现进展表｜2026-10-26</title>
+  <style>
+    :root{
+      --paper:#ffffff;--paper-alt:#f5f6f7;--ink:#17191c;--muted:#5f666d;
+      --line:#b8bdc2;--line-dark:#656b71;--done:#2f7d4a;--done-bg:#eaf4ed;
+      --partial:#b76200;--partial-bg:#fff1df;--todo:#6d7379;--todo-bg:#eef0f2;
+    }
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#202326;color:var(--ink)}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Noto Sans CJK SC",Arial,sans-serif;
+      font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+    #stage{position:fixed;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;background:var(--paper)}
+    .slide{position:absolute;inset:0;display:none;width:1920px;height:1080px;overflow:hidden;background:var(--paper);
+      padding:54px 68px 70px}
+    .slide.active{display:block}
+    header{height:94px;border-bottom:2px solid var(--line-dark);display:flex;align-items:flex-start;justify-content:space-between}
+    h1,h2,p{margin:0}
+    h1{font-size:58px;line-height:1.08;letter-spacing:-.025em}
+    h2{font-size:42px;line-height:1.12;letter-spacing:-.015em}
+    .stamp{padding-top:8px;text-align:right;color:var(--muted);font-size:19px;line-height:1.45}
+    .sub{margin-top:12px;color:var(--muted);font-size:23px;line-height:1.4}
+    .content{position:absolute;left:68px;right:68px;top:176px;bottom:76px}
+    footer{position:absolute;left:68px;right:68px;bottom:25px;border-top:1px solid var(--line);
+      padding-top:9px;display:flex;justify-content:space-between;color:var(--muted);font-size:16px}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top;line-height:1.28}
+    th{background:var(--paper-alt);font-size:18px;font-weight:700}
+    td{font-size:19px}
+    tbody tr:nth-child(even) td{background:#fafafa}
+    .tight th,.tight td{padding:7px 9px;font-size:17px;line-height:1.21}
+    .compact th,.compact td{padding:6px 8px;font-size:16px;line-height:1.18}
+    .status{display:inline-block;padding:3px 8px;border:1px solid currentColor;font-size:15px;font-weight:700;white-space:nowrap}
+    .done{color:var(--done);background:var(--done-bg)}
+    .partial{color:var(--partial);background:var(--partial-bg)}
+    .todo{color:var(--todo);background:var(--todo-bg)}
+    .na{color:var(--todo)}
+    .key{display:flex;gap:18px;align-items:center;font-size:17px;color:var(--muted)}
+    .key span{display:inline-flex;gap:6px;align-items:center}
+    .key i{width:13px;height:13px;border:1px solid currentColor;background:currentColor}
+    .key .kdone{color:var(--done)}.key .kpartial{color:var(--partial)}.key .ktodo{color:var(--todo)}
+    .callout{border:2px solid var(--line-dark);padding:18px 22px;font-size:27px;line-height:1.35;background:var(--paper-alt)}
+    .warning{border-color:var(--partial);background:var(--partial-bg)}
+    .summary-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:26px}
+    .summary-table td{height:67px;font-size:23px;vertical-align:middle}
+    .summary-table td:first-child{font-weight:700}
+    .cover-title{font-size:72px;margin-bottom:22px}
+    .cover-table td,.cover-table th{font-size:23px;padding:13px 16px;vertical-align:middle}
+    .cover-table td:first-child{font-weight:700}
+    .cover-bottom{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:24px}
+    .cover-bottom .callout{min-height:120px}
+    .section-note{margin-top:12px;font-size:18px;color:var(--muted);line-height:1.4}
+    .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+    .interpret{margin-top:18px;border:1px solid var(--line-dark);padding:14px 18px;font-size:20px;line-height:1.4}
+    .sequence td:first-child{width:70px;text-align:center;font-weight:800}
+    .sequence td:nth-child(2){width:410px;font-weight:700}
+    #nav{position:fixed;z-index:20;left:50%;bottom:11px;transform:translateX(-50%);display:flex;gap:8px}
+    #nav button{width:28px;height:5px;padding:0;border:0;background:#70757a;cursor:pointer}
+    #nav button.active{background:#ffffff}
+    #hint{position:fixed;right:16px;bottom:8px;color:#c5c8cb;font-size:12px}
+    @media print{
+      @page{size:1920px 1080px;margin:0}
+      html,body{width:auto;height:auto;overflow:visible;background:#fff}
+      #stage{position:static;width:1920px;height:auto;transform:none!important}
+      .slide,.slide.active{position:relative;display:block!important;width:1920px;height:1080px;break-after:page;page-break-after:always}
+      #nav,#hint{display:none!important}
+    }
+  </style>
+</head>
+<body>
+<main id="stage">
+  <section class="slide active" aria-label="结论封面">
+    <header><div><h1 class="cover-title">J-Lens 完整复现：当前进展</h1><p class="sub">直接结论｜拟合主体已形成；结构证据仅覆盖 Ouro / Huginn；语义与因果主张尚无结果</p></div><div class="stamp">事实截点<br>2026-10-26 23:05 CST</div></header>
+    <div class="content" style="top:204px">
+      <table class="cover-table">
+        <colgroup><col style="width:25%"><col style="width:23%"><col><col style="width:19%"></colgroup>
+        <thead><tr><th>对象</th><th>Full J-Lens</th><th>结构矩阵分析</th><th>当前判断</th></tr></thead>
+        <tbody>
+          <tr><td>Ouro-2.6B</td><td><span class="status done">4 / 4 完成</span></td><td><span class="status done">distance / symmetry / factorisation 完成</span></td><td>拟合与结构已跑</td></tr>
+          <tr><td>Huginn-0125</td><td><span class="status done">primary 4 / 4</span>　<span class="status partial">tiling 14 / 16</span></td><td><span class="status done">使用 primary 完成</span></td><td>tiling 尚缺 2 个</td></tr>
+          <tr><td>Qwen3.6-27B</td><td><span class="status todo">0 个 lens</span></td><td><span class="status todo">未开始</span></td><td>下载受阻，任务已停止</td></tr>
+          <tr><td>Nanbeige4.2-3B</td><td><span class="status done">2 / 2 完成</span></td><td><span class="status todo">未开始</span></td><td>探索扩展，不汇总入复现</td></tr>
+        </tbody>
+      </table>
+      <div class="cover-bottom">
+        <div class="callout warning"><b>因果实验：11 / 11 族未开始。</b><br>目前没有任何因果实验结果，也没有完整复现论文主结论。</div>
+        <div class="callout"><b>结构信号：仅 Ouro / Huginn。</b><br>已生成可分析的全量均值 Jacobian 产物，但不能据此证明语义或因果主张。</div>
+      </div>
+    </div>
+    <footer><span>来源：docs/experiment-plan.md · configs/paper.yaml · NAS lens 产物 · runs/structural-20261026T020700Z/*.json · stage.log</span><span>01 / 08</span></footer>
+  </section>
+
+  <section class="slide" aria-label="四模型总表">
+    <header><div><h2>四模型实验总表</h2><p class="sub">“—”表示结构上不适用，不等同于失败；Nanbeige 仅为探索扩展</p></div><div class="key"><span class="kdone"><i></i>完成</span><span class="kpartial"><i></i>部分 / 受阻</span><span class="ktodo"><i></i>未开始</span></div></header>
+    <div class="content">
+      <table class="compact">
+        <colgroup><col style="width:10%"><col style="width:12%"><col style="width:12%"><col style="width:9%"><col style="width:10%"><col style="width:10%"><col style="width:14%"><col style="width:9%"><col style="width:8%"></colgroup>
+        <thead><tr><th>模型</th><th>适配 / 确定性验证</th><th>Full J-Lens</th><th>距离范数</th><th>共享权重对称性</th><th>均值 Jacobian 分解</th><th>语义 / 读出</th><th>因果 11 族</th><th>Concept inventory</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>Ouro-2.6B</b></td><td><span class="status done">完成</span><br>bit-exact；192 虚拟层各触发一次；梯度非零</td>
+            <td><span class="status done">4 / 4</span><br>full lens</td><td><span class="status done">完成</span></td><td><span class="status done">完成</span></td><td><span class="status done">完成</span></td>
+            <td><span class="status todo">未做</span><br>语义、checkpoint readout；Thinking 鲁棒性待权重</td><td><span class="status todo">未做</span></td><td><span class="status todo">未做</span></td>
+          </tr>
+          <tr>
+            <td><b>Huginn-0125</b></td><td><span class="status done">完成</span><br>bit-exact；68 虚拟层各触发一次；梯度非零</td>
+            <td><span class="status done">primary 4 / 4</span><br><span class="status partial">tiling 14 / 16</span></td><td><span class="status done">完成</span><br>primary</td><td><span class="status done">完成</span><br>primary</td><td><span class="status done">完成</span><br>primary</td>
+            <td><span class="status todo">未做</span><br>语义、input reinjection、sliding readout</td><td><span class="status todo">未做</span></td><td><span class="status todo">未做</span></td>
+          </tr>
+          <tr>
+            <td><b>Qwen3.6-27B</b></td><td><span class="status partial">脚本已写</span><br>真实模型预检被下载阻塞</td>
+            <td><span class="status partial">0 / 2</span><br>目标：final、L24</td><td><span class="status todo">未做</span></td><td class="na">—<br>无共享迭代权重</td><td><span class="status todo">未做</span></td>
+            <td><span class="status todo">未做</span></td><td><span class="status todo">未做</span></td><td><span class="status todo">未做</span></td>
+          </tr>
+          <tr>
+            <td><b>Nanbeige4.2-3B</b></td><td><span class="status done">完成</span></td><td><span class="status done">2 / 2</span><br>full ≈ 8.4h</td><td><span class="status todo">未做</span></td><td><span class="status todo">未做</span></td><td><span class="status todo">未做</span></td>
+            <td><span class="status todo">未做</span></td><td><span class="status todo">未做</span></td><td><span class="status todo">未做</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="section-note"><b>Qwen 下载状态：</b>权重归档约 33GB；根目录 6 个完整分片；另 9 个文件因 ModelScope 3 小时总时限失败。任务目前已停止，并非仍在运行。</p>
+    </div>
+    <footer><span>来源：docs/experiment-plan.md · configs/paper.yaml · NAS lens 产物 · runs/structural-20261026T020700Z/*.json · stage.log</span><span>02 / 08</span></footer>
+  </section>
+
+  <section class="slide" aria-label="J-Lens 与结构实验">
+    <header><div><h2>J-Lens / 结构实验逐项目台账</h2><p class="sub">完成项仅限：Ouro 与 Huginn 的矩阵范数、共享权重 symmetry、mean-Jacobian factorisation</p></div><div class="stamp">top-1 / KL<br>尚未完成</div></header>
+    <div class="content">
+      <table class="tight">
+        <colgroup><col style="width:22%"><col><col style="width:18%"><col style="width:18%"></colgroup>
+        <thead><tr><th>项目</th><th>测什么 / 为什么</th><th>适用对象</th><th>当前状态</th></tr></thead>
+        <tbody>
+          <tr><td><b>Full J-Lens fitting</b></td><td>对全量样本估计层间均值 Jacobian，生成后续传输、读出与干预所需 lens。</td><td>四模型</td><td><span class="status partial">部分完成</span><br>Ouro 4；H primary 4、tiling 14；Nanbeige 2；Qwen 0</td></tr>
+          <tr><td><b>距离控制：operator norm（主）+ Frobenius（辅）</b></td><td>在匹配源—目标距离下测传输强度；谱范数为主，Frobenius 仅作辅助。</td><td>Ouro / Huginn</td><td><span class="status done">完成</span><br>52 条记录均收敛</td></tr>
+          <tr><td><b>Top-1 / KL 语义保持</b></td><td>检验经 Jacobian 传输后，预测类别与概率场是否保持。</td><td>Ouro / Huginn</td><td><span class="status todo">未完成</span></td></tr>
+          <tr><td><b>跨循环语义传输</b></td><td>比较 Ouro 循环内与跨循环的概念 / 预测语义能否稳定传递。</td><td>Ouro</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td><b>共享权重 symmetry</b></td><td>比较匹配 offset 的 Jacobian 在重复使用共享权重时是否相似。</td><td>Ouro / Huginn</td><td><span class="status done">完成</span><br>Huginn 使用 primary</td></tr>
+          <tr><td><b>Mean-Jacobian factorisation</b></td><td>检验跨迭代边界的均值 Jacobian 能否由局部均值 Jacobian 乘积分解。</td><td>Ouro / Huginn</td><td><span class="status done">完成</span><br>Huginn 使用 primary</td></tr>
+          <tr><td><b>Huginn input reinjection</b></td><td>分离 recurrence 中输入重注入路径对状态更新和传输的贡献。</td><td>Huginn</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td><b>Ouro logit-lens / early exit</b></td><td>检查不同循环 checkpoint 的词表读出与提前退出可行性。</td><td>Ouro</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td><b>Huginn sliding readout</b></td><td>在完整 tiling 上滑动有效 readout window，定位可稳定读出的 recurrence 区间。</td><td>Huginn</td><td><span class="status todo">未开始</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <footer><span>来源：docs/experiment-plan.md · configs/paper.yaml · NAS lens 产物 · runs/structural-20261026T020700Z/*.json · stage.log</span><span>03 / 08</span></footer>
+  </section>
+
+  <section class="slide" aria-label="因果实验十一族">
+    <header><div><h2>因果实验 11 族：用途与状态</h2><p class="sub">全部未开始；共享 causal engine、对照组与确定性回放尚未实现并通过门控</p></div><div class="stamp"><span class="status todo">0 / 11</span></div></header>
+    <div class="content">
+      <table class="tight">
+        <colgroup><col style="width:5%"><col style="width:31%"><col><col style="width:12%"></colgroup>
+        <thead><tr><th>#</th><th>实验族</th><th>用途</th><th>状态</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><b>Flexible generalisation</b></td><td>检验写入的中间信息能否在后续推理中被重新推导并用于泛化。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>2</td><td><b>Argument / answer / control direction ablation</b><br>含 top-10 subspace</td><td>区分论证、答案与控制方向的因果角色，并检验 top-10 追踪子空间消融。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>3</td><td><b>Verbal report / introspection</b></td><td>比较模型对既有内容与新注入内容的口头报告和自省能力。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>4</td><td><b>Directed modulation</b></td><td>通过 focus / control / suppress 定向调节概念方向，测输出的可控变化。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>5</td><td><b>Top-down summoning</b></td><td>从高层概念方向向下游施加干预，测试目标内容能否被召回。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>6</td><td><b>Two-hop probe swap</b></td><td>交换两跳推理中的探针内容，判断中间表征是否被后续步骤因果使用。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>7</td><td><b>Language selectivity</b></td><td>测试方向干预是否选择性影响目标语言，而非普遍破坏生成。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>8</td><td><b>Line-count selectivity</b></td><td>测试干预是否选择性改变行数控制，而非无关文本属性。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>9</td><td><b>Ignition</b></td><td>测概念由弱到强进入可读 / 可用状态的阈值与层位。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>10</td><td><b>Capacity</b></td><td>测同一状态可同时承载并保持可读的独立概念数量。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>11</td><td><b>Dual task</b></td><td>检验并行任务下概念保持、干扰与行为性能的权衡。</td><td><span class="status todo">未开始</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <footer><span>来源：docs/experiment-plan.md · configs/paper.yaml · NAS lens 产物 · runs/structural-20261026T020700Z/*.json · stage.log</span><span>04 / 08</span></footer>
+  </section>
+
+  <section class="slide" aria-label="其他实验目的">
+    <header><div><h2>其他实验：目的与状态</h2><p class="sub">展示、inventory、baseline 与鲁棒性均在结构分析之后</p></div><div class="stamp">不把“计划存在”<br>写成“结果存在”</div></header>
+    <div class="content">
+      <table>
+        <colgroup><col style="width:32%"><col><col style="width:18%"></colgroup>
+        <thead><tr><th>实验</th><th>用途</th><th>当前状态</th></tr></thead>
+        <tbody>
+          <tr><td><b>8-prompt × 128-token layer × position dumps</b></td><td>逐虚拟层、逐位置保存 8 个提示的 128-token 贪心补全，为概念分布与读出分析提供原始记录。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td><b>J-lens / logit-lens top-8</b></td><td>并列保存 Jacobian lens 与直接 logit lens 的 top-8 概率字段，比较两种读出。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td><b>Non-negative gradient pursuit</b><br>k = 8 / 16 / 25 / 50</td><td>用非负系数追踪可解释 token 方向，构建不同稀疏度下的 concept inventory。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td><b>Occupancy / explained variance / calibration</b></td><td>量化概念占用、子空间解释度与概率场校准，验证 inventory 是否有统计意义。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td><b>Qwen baseline</b></td><td>提供非循环模型基线，目标为 final 与 L24 两个 lens，并用于论文指定层带比较。</td><td><span class="status partial">受下载阻塞</span><br>0 / 2 lens；任务已停止</td></tr>
+          <tr><td><b>Ouro-2.6B-Thinking robustness</b></td><td>在 Thinking 权重上重复 Ouro 流程，检查结构、语义和因果现象是否跨 checkpoint 稳健。</td><td><span class="status partial">待权重</span></td></tr>
+          <tr><td><b>Nanbeige extension</b></td><td>探索另一循环架构能否使用同一适配与实验协议；单独标记，不与论文复现汇总。</td><td><span class="status partial">仅拟合完成</span><br>2 / 2；后续均未做</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <footer><span>来源：docs/experiment-plan.md · configs/paper.yaml · NAS lens 产物 · runs/structural-20261026T020700Z/*.json · stage.log</span><span>05 / 08</span></footer>
+  </section>
+
+  <section class="slide" aria-label="拟合产物说明">
+    <header><div><h2>已完成拟合得到什么</h2><p class="sub">结论边界：产物可生成 ≠ 语义保持成立 ≠ 因果主张成立</p></div><div class="stamp">Lens artefacts<br>不是论文结论</div></header>
+    <div class="content summary-grid">
+      <table class="summary-table">
+        <thead><tr><th>配置</th><th>现有 lens</th><th>已核实事实</th></tr></thead>
+        <tbody>
+          <tr><td>Ouro full</td><td><span class="status done">4</span></td><td>适配可运行；全量均值 Jacobian 产物可生成</td></tr>
+          <tr><td>Huginn primary</td><td><span class="status done">4</span></td><td>适配可运行；全量均值 Jacobian 产物可生成</td></tr>
+          <tr><td>Huginn tiling</td><td><span class="status partial">14 / 16</span></td><td>尚缺 2 个 readout target</td></tr>
+          <tr><td>Nanbeige full</td><td><span class="status done">2</span></td><td>full fit 约 8.4h 成功；探索扩展</td></tr>
+          <tr><td>Qwen</td><td><span class="status todo">0</span></td><td>真实模型预检与拟合均未完成</td></tr>
+        </tbody>
+      </table>
+      <div>
+        <div class="callout"><b>Preflight 已验证（Ouro / Huginn）</b><br><br>• bit-exact forward<br>• 每个虚拟层恰好触发一次<br>• 每处梯度非零<br><br>Ouro：192 个虚拟层<br>Huginn：68 个虚拟层</div>
+        <div class="callout warning" style="margin-top:22px"><b>尚不能证明</b><br><br>• top-1 / KL 语义保持<br>• 跨循环语义传输<br>• 任一干预的因果有效性<br>• 论文的主结论已被完整复现</div>
+      </div>
+    </div>
+    <footer><span>来源：docs/experiment-plan.md · configs/paper.yaml · NAS lens 产物 · runs/structural-20261026T020700Z/*.json · stage.log</span><span>06 / 08</span></footer>
+  </section>
+
+  <section class="slide" aria-label="结构分析结论">
+    <header><div><h2>已完成结构分析：数值与严谨解释</h2><p class="sub">52 条 distance 记录的 operator norm power iteration 全部收敛</p></div><div class="stamp">交叉信号<br>不是论文结论</div></header>
+    <div class="content">
+      <div class="result-grid">
+        <table>
+          <thead><tr><th colspan="3">Ouro</th></tr><tr><th>分析</th><th>主指标中位数</th><th>矩阵 cosine 中位数</th></tr></thead>
+          <tbody>
+            <tr><td><b>Symmetry</b></td><td>relative operator difference<br><b>0.725</b></td><td>Frobenius matrix cosine<br><b>0.970</b></td></tr>
+            <tr><td><b>Factorisation</b></td><td>relative operator error<br><b>0.210</b></td><td>matrix cosine<br><b>0.994</b></td></tr>
+            <tr><td><b>Distance operator norm</b></td><td colspan="2">offset 1：<b>5.974</b> → offset 32：<b>13.553</b> → offset 48：<b>4.714</b></td></tr>
+          </tbody>
+        </table>
+        <table>
+          <thead><tr><th colspan="3">Huginn</th></tr><tr><th>分析</th><th>主指标中位数</th><th>矩阵 cosine 中位数</th></tr></thead>
+          <tbody>
+            <tr><td><b>Symmetry</b></td><td>relative operator difference<br><b>0.209</b></td><td>Frobenius matrix cosine<br><b>≈ 1.000</b>（数值误差可略超 1）</td></tr>
+            <tr><td><b>Factorisation</b></td><td>relative operator error<br><b>0.736</b></td><td>matrix cosine<br><b>0.940</b></td></tr>
+            <tr><td><b>Distance operator norm</b></td><td colspan="2">offset 1：<b>3.906</b> → offset 32：<b>0.136</b>；offset 48：<b>2.478</b></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="interpret"><b>解释：</b>Ouro 的跨循环 Jacobian 整体方向相似，但最强方向差异较大，同时均值分解相对更好；Huginn 的 recurrence 间更对称，但均值分解误差较大。这是交叉信号，必须后续按层位、offset、样本拆分，并补做语义与因果验证。</div>
+      <div class="interpret warning"><b>Distance 不是简单单调衰减：</b>两模型在 offset 48 均出现反转，提示 target / phase 混杂。后续必须做 matched distance / phase 比较，不能把当前曲线直接解释为记忆衰减。</div>
+    </div>
+    <footer><span>来源：docs/experiment-plan.md · configs/paper.yaml · NAS lens 产物 · runs/structural-20261026T020700Z/*.json · stage.log</span><span>07 / 08</span></footer>
+  </section>
+
+  <section class="slide" aria-label="未完成与执行顺序">
+    <header><div><h2>未完成事项与执行顺序</h2><p class="sub">先补齐拟合与协议，再建立因果门控；比较性扩展最后进行</p></div><div class="stamp">当前终点<br>尚未完整复现</div></header>
+    <div class="content">
+      <table class="sequence">
+        <colgroup><col style="width:6%"><col style="width:28%"><col><col style="width:15%"></colgroup>
+        <thead><tr><th>顺序</th><th>工作包</th><th>完成标准</th><th>当前状态</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>完成 Huginn tiling</td><td>补齐剩余 2 个 lens，形成 16 / 16 完整 sliding readout 网格。</td><td><span class="status partial">14 / 16</span></td></tr>
+          <tr><td>2</td><td>恢复 Qwen 续传并 fit</td><td>恢复已停止的下载；完整归档后预检真实模型，拟合 final 与 L24 两个 lens。</td><td><span class="status partial">下载受阻</span></td></tr>
+          <tr><td>3</td><td>锁定语义协议</td><td>固定 concept token、unembedding、prompt、位置与哈希，形成可复算配置。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>4</td><td>完成语义 / readout</td><td>完成 top-1 / KL、跨循环语义、input reinjection、early exit、sliding readout。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>5</td><td>实现共享 causal engine + controls</td><td>统一 recording / injection / ablation / transfer；加入无干预、随机子空间、无关 token 对照。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>6</td><td>先跑 3 个 causal gates</td><td>Flexible generalisation；direction ablation（含 top-10）；verbal report / introspection。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>7</td><td>再跑 8 个 remaining</td><td>Directed modulation 至 dual task；保留逐 trial JSONL 和配对统计。</td><td><span class="status todo">未开始</span></td></tr>
+          <tr><td>8</td><td>Inventory 与跨模型比较</td><td>最后完成 inventory、Qwen baseline、Ouro-Thinking robustness、Nanbeige extension。</td><td><span class="status todo">未开始</span></td></tr>
+        </tbody>
+      </table>
+      <div class="callout warning" style="margin-top:18px"><b>明确边界：</b>目前没有任何因果实验结果，也没有完整复现论文主结论。</div>
+    </div>
+    <footer><span>来源：docs/experiment-plan.md · configs/paper.yaml · NAS lens 产物 · runs/structural-20261026T020700Z/*.json · stage.log</span><span>08 / 08</span></footer>
+  </section>
+</main>
+<nav id="nav" aria-label="幻灯片导航"></nav>
+<div id="hint">← → / SPACE · HOME END · F</div>
+<script>
+(() => {
+  const stage=document.getElementById("stage");
+  const slides=[...document.querySelectorAll(".slide")];
+  const nav=document.getElementById("nav");
+  let index=Math.max(0,Math.min(slides.length-1,(Number(location.hash.slice(1))||1)-1));
+  slides.forEach((slide,i)=>{
+    const button=document.createElement("button");
+    button.type="button";button.title=`${i+1} / ${slides.length} · ${slide.getAttribute("aria-label")}`;
+    button.addEventListener("click",()=>show(i));nav.appendChild(button);
+  });
+  function show(next){
+    index=Math.max(0,Math.min(slides.length-1,next));
+    slides.forEach((slide,i)=>slide.classList.toggle("active",i===index));
+    [...nav.children].forEach((button,i)=>button.classList.toggle("active",i===index));
+    history.replaceState(null,"",`#${index+1}`);
+  }
+  function scale(){
+    const z=Math.min(innerWidth/1920,innerHeight/1080);
+    stage.style.transform=`translate(-50%,-50%) scale(${z})`;
+  }
+  addEventListener("keydown",event=>{
+    if(["ArrowRight"," ","PageDown"].includes(event.key)){event.preventDefault();show(index+1)}
+    else if(["ArrowLeft","PageUp"].includes(event.key)){event.preventDefault();show(index-1)}
+    else if(event.key==="Home"){event.preventDefault();show(0)}
+    else if(event.key==="End"){event.preventDefault();show(slides.length-1)}
+    else if(event.key.toLowerCase()==="f"){
+      event.preventDefault();
+      document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.();
+    }
+  });
+  addEventListener("hashchange",()=>{const n=Number(location.hash.slice(1));if(Number.isInteger(n)&&n>=1)show(n-1)});
+  addEventListener("resize",scale);
+  show(index);scale();
+  window.__deck={show,slides,get index(){return index}};
+  window.__ready=true;
+})();
+</script>
+</body>
+</html>
