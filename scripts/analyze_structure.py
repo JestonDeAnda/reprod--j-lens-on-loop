@@ -159,7 +159,10 @@ def factorisation_rows(
             if middle % args.period != target % args.period:
                 continue
             second = target_lens.jacobians[middle].detach().float()
-            for source in middle_lens.source_layers:
+            sources = [middle - offset for offset in args.offsets]
+            for source in sources:
+                if source not in middle_lens.jacobians:
+                    continue
                 if source not in target_lens.jacobians:
                     continue
                 first = middle_lens.jacobians[source].detach().float()
