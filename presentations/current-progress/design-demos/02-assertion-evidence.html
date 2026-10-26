@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>J-Lens 当前进展｜Assertion–Evidence</title>
+  <!--
+    Direction 02: Assertion–Evidence × Tufte × Nature figure plate
+    Assumptions: 会议室投屏；事实截点固定为 2026-10-26 11:08 CST；
+    两页均只承担一个判断；所有数值均来自唯一输入 design-spec.md。
+  -->
+  <style>
+    :root{
+      --paper:#ffffff;
+      --ink:#172026;
+      --muted:#5f6b72;
+      --hair:#cbd2d5;
+      --grid:#e5e9eb;
+      --blue:#0072b2;
+      --orange:#d55e00;
+      --green:#009e73;
+      --amber:#c68a00;
+      --soft-blue:#eaf4f8;
+      --soft-amber:#faf3df;
+    }
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#dfe3e5}
+    body{
+      color:var(--ink);
+      font-family:"Avenir Next","Helvetica Neue","Noto Sans CJK SC","PingFang SC",sans-serif;
+      font-variant-numeric:tabular-nums lining-nums;
+    }
+    #viewport{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    #deck{
+      position:relative;
+      width:1920px;
+      height:1080px;
+      flex:0 0 auto;
+      transform-origin:center center;
+      background:var(--paper);
+      box-shadow:0 16px 60px rgba(26,35,40,.16);
+    }
+    .slide{
+      position:absolute;
+      inset:0;
+      display:none;
+      width:1920px;
+      height:1080px;
+      overflow:hidden;
+      background:var(--paper);
+    }
+    .slide.active{display:block}
+    .top-rule{
+      position:absolute;
+      left:108px;
+      right:108px;
+      top:62px;
+      height:2px;
+      background:var(--ink);
+    }
+    .eyebrow{
+      position:absolute;
+      left:108px;
+      top:80px;
+      color:var(--muted);
+      font-size:20px;
+      font-weight:650;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+    }
+    .date{
+      position:absolute;
+      right:108px;
+      top:80px;
+      color:var(--muted);
+      font-size:20px;
+      letter-spacing:.04em;
+    }
+    h1,h2,p{margin:0}
+    .assertion{
+      font-family:"Iowan Old Style","Songti SC","STSong","Noto Serif CJK SC",Georgia,serif;
+      font-weight:600;
+      letter-spacing:-.025em;
+      text-wrap:balance;
+    }
+    .source{
+      position:absolute;
+      left:108px;
+      bottom:48px;
+      color:var(--muted);
+      font-size:20px;
+      line-height:1.35;
+    }
+    .source strong{color:var(--ink);font-weight:650}
+    .counter{
+      position:absolute;
+      right:108px;
+      bottom:48px;
+      color:var(--muted);
+      font-size:20px;
+      letter-spacing:.08em;
+    }
+
+    /* Slide 1 */
+    .cover .assertion{
+      position:absolute;
+      left:108px;
+      top:154px;
+      width:1585px;
+      font-size:73px;
+      line-height:1.13;
+    }
+    .cover .assertion .caution{color:var(--orange)}
+    .cover-figure{
+      position:absolute;
+      left:108px;
+      top:442px;
+      width:1704px;
+      height:410px;
+    }
+    .phase-line{
+      position:absolute;
+      left:78px;
+      right:78px;
+      top:188px;
+      height:3px;
+      background:var(--hair);
+    }
+    .phase-line::before{
+      content:"";
+      position:absolute;
+      left:0;
+      width:58%;
+      height:3px;
+      background:var(--green);
+    }
+    .phase-line::after{
+      content:"";
+      position:absolute;
+      left:58%;
+      width:18%;
+      height:3px;
+      background:var(--blue);
+    }
+    .phase{
+      position:absolute;
+      top:126px;
+      width:300px;
+      transform:translateX(-50%);
+      text-align:center;
+    }
+    .phase::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:57px;
+      width:17px;
+      height:17px;
+      border-radius:50%;
+      transform:translate(-50%,-50%);
+      background:var(--paper);
+      border:3px solid var(--hair);
+    }
+    .phase.done::after{border-color:var(--green);background:var(--green)}
+    .phase.current::after{border-color:var(--blue);background:var(--blue);box-shadow:0 0 0 8px var(--soft-blue)}
+    .phase.open::after{border-color:var(--orange);background:var(--paper)}
+    .p1{left:8%}.p2{left:31%}.p3{left:58%}.p4{left:82%}
+    .phase-kicker{
+      color:var(--muted);
+      font-size:20px;
+      font-weight:700;
+      letter-spacing:.08em;
+    }
+    .phase-name{
+      margin-top:6px;
+      font-size:28px;
+      font-weight:680;
+      line-height:1.2;
+    }
+    .phase-note{
+      position:absolute;
+      top:224px;
+      width:330px;
+      transform:translateX(-50%);
+      color:var(--muted);
+      text-align:center;
+      font-size:22px;
+      line-height:1.42;
+    }
+    .phase-note strong{display:block;color:var(--ink);font-size:30px;font-weight:700}
+    .n1{left:8%}.n2{left:31%}.n3{left:58%}.n4{left:82%}
+    .open-items{
+      position:absolute;
+      left:1196px;
+      top:322px;
+      color:var(--orange);
+      font-size:20px;
+      font-weight:650;
+      letter-spacing:.02em;
+    }
+
+    /* Slide 2 */
+    .analysis .assertion{
+      position:absolute;
+      left:108px;
+      top:145px;
+      width:1680px;
+      font-size:58px;
+      line-height:1.14;
+    }
+    .analysis .assertion em{font-style:normal;color:var(--blue)}
+    .analysis-figure{
+      position:absolute;
+      left:108px;
+      top:337px;
+      width:1704px;
+      height:575px;
+    }
+    .metric-label{
+      position:absolute;
+      left:0;
+      width:284px;
+      font-size:25px;
+      font-weight:700;
+      line-height:1.25;
+    }
+    .metric-label span{
+      display:block;
+      margin-top:7px;
+      color:var(--muted);
+      font-size:20px;
+      font-weight:500;
+      line-height:1.3;
+    }
+    .m1{top:91px}.m2{top:302px}
+    .axis{
+      position:absolute;
+      left:324px;
+      right:42px;
+      top:0;
+      height:500px;
+    }
+    .axis-line{
+      position:absolute;
+      left:0;
+      right:0;
+      top:448px;
+      height:2px;
+      background:var(--ink);
+    }
+    .grid-line{
+      position:absolute;
+      top:44px;
+      height:404px;
+      width:1px;
+      background:var(--grid);
+    }
+    .grid-line::after{
+      content:attr(data-label);
+      position:absolute;
+      top:416px;
+      left:0;
+      transform:translateX(-50%);
+      color:var(--muted);
+      font-size:20px;
+    }
+    .g0{left:0}.g20{left:20%}.g40{left:40%}.g60{left:60%}.g80{left:80%}.g100{left:100%}
+    .row-guide{
+      position:absolute;
+      left:0;
+      right:0;
+      height:1px;
+      background:var(--hair);
+    }
+    .r1{top:139px}.r2{top:350px}
+    .series-line{
+      position:absolute;
+      height:5px;
+      border-radius:0;
+      transform-origin:left center;
+    }
+    .s1{left:20.9%;top:137px;width:51.6%;background:var(--blue)}
+    .s2{left:21%;top:348px;width:52.6%;background:var(--orange)}
+    .dot{
+      position:absolute;
+      width:26px;
+      height:26px;
+      border-radius:50%;
+      transform:translate(-50%,-50%);
+      background:var(--paper);
+      border:7px solid currentColor;
+    }
+    .ouro{color:var(--orange)}
+    .huginn{color:var(--blue)}
+    .d11{left:72.5%;top:139px}.d12{left:20.9%;top:139px}
+    .d21{left:21%;top:350px}.d22{left:73.6%;top:350px}
+    .value{
+      position:absolute;
+      transform:translateX(-50%);
+      font-size:25px;
+      font-weight:750;
+      white-space:nowrap;
+    }
+    .value small{
+      display:block;
+      margin-top:4px;
+      color:var(--muted);
+      font-size:18px;
+      font-weight:600;
+    }
+    .v11{left:72.5%;top:74px}.v12{left:20.9%;top:74px}
+    .v21{left:21%;top:371px}.v22{left:73.6%;top:371px}
+    .legend{
+      position:absolute;
+      left:324px;
+      top:10px;
+      display:flex;
+      gap:42px;
+      font-size:20px;
+      font-weight:650;
+    }
+    .legend-item{display:flex;align-items:center;gap:10px}
+    .legend-dot{width:13px;height:13px;border-radius:50%}
+    .legend-dot.ouro{background:var(--orange)}
+    .legend-dot.huginn{background:var(--blue)}
+    .axis-title{
+      position:absolute;
+      left:324px;
+      right:42px;
+      bottom:0;
+      color:var(--muted);
+      text-align:center;
+      font-size:20px;
+    }
+    .evidence-note{
+      position:absolute;
+      right:0;
+      top:1px;
+      color:var(--muted);
+      font-family:"Iowan Old Style","Songti SC","STSong",Georgia,serif;
+      font-size:20px;
+      font-style:italic;
+    }
+    .n-label{
+      position:absolute;
+      left:0;
+      color:var(--muted);
+      font-size:20px;
+    }
+    .nl1{top:199px}.nl2{top:410px}
+    .convergence{
+      position:absolute;
+      right:42px;
+      top:485px;
+      color:var(--green);
+      font-size:20px;
+      font-weight:700;
+    }
+
+    .help{
+      position:fixed;
+      right:18px;
+      bottom:14px;
+      z-index:5;
+      color:#68737a;
+      font-size:12px;
+      opacity:.62;
+      user-select:none;
+    }
+    @media print{
+      html,body{overflow:visible;background:#fff}
+      #viewport{position:static;display:block}
+      #deck{width:1920px;height:auto;transform:none!important;box-shadow:none}
+      .slide{position:relative;display:block!important;page-break-after:always}
+      .help{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport">
+    <main id="deck" aria-label="J-Lens 当前进展两页展示">
+      <section class="slide cover active" aria-labelledby="cover-title">
+        <div class="top-rule"></div>
+        <div class="eyebrow">J-Lens 完整复现 · 当前进展</div>
+        <div class="date">事实截点 · 2026-10-26 11:08 CST</div>
+
+        <h1 class="assertion" id="cover-title">
+          拟合主体基本完成，工作已进入结构分析；<span class="caution">但三处关键链路仍未闭合。</span>
+        </h1>
+
+        <figure class="cover-figure" aria-label="项目由拟合进入结构分析，但归档、tiling 与语义协议尚未闭环">
+          <div class="phase-line"></div>
+
+          <div class="phase done p1">
+            <div class="phase-kicker">已形成训练产物</div>
+            <div class="phase-name">Full lenses</div>
+          </div>
+          <div class="phase done p2">
+            <div class="phase-kicker">已运行分析程序</div>
+            <div class="phase-name">结构分析</div>
+          </div>
+          <div class="phase current p3">
+            <div class="phase-kicker">当前证据等级</div>
+            <div class="phase-name">初步信号</div>
+          </div>
+          <div class="phase open p4">
+            <div class="phase-kicker">尚不能宣称</div>
+            <div class="phase-name">论文结论复现</div>
+          </div>
+
+          <div class="phase-note n1">
+            <strong>10 / 10</strong>
+            Ouro full 4/4 · Huginn primary 4/4<br>Nanbeige full 2/2
+          </div>
+          <div class="phase-note n2">
+            <strong>6 JSON</strong>
+            distance · symmetry · factorisation<br>Ouro 与 Huginn
+          </div>
+          <div class="phase-note n3">
+            <strong>首批对照</strong>
+            指标呈反向差异<br>需扩样与语义验证
+          </div>
+          <div class="phase-note n4">
+            <strong>3 个缺口</strong>
+            Huginn tiling 13/16 · Qwen 续传<br>语义协议待锁定
+          </div>
+          <div class="open-items">未闭合链路决定下一阶段排期</div>
+        </figure>
+
+        <div class="source"><strong>状态口径：</strong>训练产物 ≠ 分析完成 ≠ 初步信号 ≠ 论文结论复现</div>
+        <div class="counter" aria-hidden="true">01 / 02</div>
+      </section>
+
+      <section class="slide analysis" aria-labelledby="analysis-title">
+        <div class="top-rule"></div>
+        <div class="eyebrow">结构分析 · 首批结果</div>
+        <div class="date">中位数 · 相对算子误差</div>
+
+        <h2 class="assertion" id="analysis-title">
+          Ouro 与 Huginn 在 symmetry 和 factorisation 上呈现<em>方向相反的首批信号</em>，尚不足以升级为论文结论。
+        </h2>
+
+        <figure class="analysis-figure" aria-label="Ouro 与 Huginn 的 symmetry 和 factorisation 相对误差中位数对照">
+          <div class="metric-label m1">
+            Symmetry
+            <span>relative operator difference<br>越低表示对称性偏差越小</span>
+          </div>
+          <div class="metric-label m2">
+            Factorisation
+            <span>relative operator error<br>越低表示因子分解误差越小</span>
+          </div>
+          <div class="n-label nl1">Ouro n=39 · Huginn n=16</div>
+          <div class="n-label nl2">Ouro n=39 · Huginn n=16</div>
+
+          <div class="axis">
+            <div class="legend">
+              <div class="legend-item"><span class="legend-dot ouro"></span>Ouro</div>
+              <div class="legend-item"><span class="legend-dot huginn"></span>Huginn</div>
+            </div>
+            <div class="evidence-note">同一标尺，避免双轴夸大差异</div>
+
+            <div class="grid-line g0" data-label="0.0"></div>
+            <div class="grid-line g20" data-label="0.2"></div>
+            <div class="grid-line g40" data-label="0.4"></div>
+            <div class="grid-line g60" data-label="0.6"></div>
+            <div class="grid-line g80" data-label="0.8"></div>
+            <div class="grid-line g100" data-label="1.0"></div>
+            <div class="row-guide r1"></div>
+            <div class="row-guide r2"></div>
+            <div class="axis-line"></div>
+
+            <div class="series-line s1"></div>
+            <div class="series-line s2"></div>
+
+            <div class="dot ouro d11"></div>
+            <div class="dot huginn d12"></div>
+            <div class="dot ouro d21"></div>
+            <div class="dot huginn d22"></div>
+
+            <div class="value ouro v11">0.725<small>Ouro</small></div>
+            <div class="value huginn v12">0.209<small>Huginn</small></div>
+            <div class="value ouro v21">0.210<small>Ouro</small></div>
+            <div class="value huginn v22">0.736<small>Huginn</small></div>
+          </div>
+
+          <div class="axis-title">误差 / 差异（0–1；数值越低越好）</div>
+          <div class="convergence">52 / 52 distance records 的 operator-norm power iteration 均收敛</div>
+        </figure>
+
+        <div class="source"><strong>来源：</strong>DSW 结构分析输出 6 个 JSON；本页仅报告可追溯的中位数与记录数。</div>
+        <div class="counter" aria-hidden="true">02 / 02</div>
+      </section>
+    </main>
+  </div>
+  <div class="help">← → / Space · Home / End · F 全屏</div>
+
+  <script>
+    (() => {
+      const deck = document.getElementById('deck');
+      const slides = [...document.querySelectorAll('.slide')];
+      const hashIndex = Number(location.hash.replace('#','')) - 1;
+      let index = Number.isInteger(hashIndex) && hashIndex >= 0
+        ? hashIndex
+        : Number(localStorage.getItem('jlens-ae-slide') || 0);
+      index = Math.max(0, Math.min(slides.length - 1, index));
+
+      function render() {
+        slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+        localStorage.setItem('jlens-ae-slide', String(index));
+        document.title = `J-Lens 当前进展｜${index + 1}/${slides.length}`;
+      }
+      function fit() {
+        const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        deck.style.transform = `scale(${scale})`;
+      }
+      function go(next) {
+        index = Math.max(0, Math.min(slides.length - 1, next));
+        render();
+      }
+      window.addEventListener('resize', fit, {passive:true});
+      window.addEventListener('keydown', (event) => {
+        if (['ArrowRight','PageDown',' '].includes(event.key)) {
+          event.preventDefault();
+          go(index + 1);
+        } else if (['ArrowLeft','PageUp'].includes(event.key)) {
+          event.preventDefault();
+          go(index - 1);
+        } else if (event.key === 'Home') {
+          event.preventDefault();
+          go(0);
+        } else if (event.key === 'End') {
+          event.preventDefault();
+          go(slides.length - 1);
+        } else if (event.key.toLowerCase() === 'f') {
+          document.documentElement.requestFullscreen?.();
+        }
+      });
+      fit();
+      render();
+      window.__deckReady = true;
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>J-Lens 完整复现｜当前进展</title>
+  <!--
+    ASSUMPTIONS
+    - 这是三方向初稿中的 Takram / research instrument 方向，仅含两页代表页。
+    - 所有数字来自 design-spec.md 的 2026-10-26 11:08 CST 事实截点。
+    - 初步结构信号不被表述为论文结论；未闭环事项以开口环和虚线表示。
+    FORM
+    - 封面是“状态判读仪”：用一条实验链路同时表达阶段、完成项与未闭环项。
+    - 分析页是“双样本标本台”：用同尺度矩阵和误差轨道呈现 Ouro / Huginn 的交叉对照。
+  -->
+  <style>
+    :root {
+      --paper: #e8e0cf;
+      --paper-2: #ded4bf;
+      --ink: #1c2824;
+      --ink-soft: #4e5951;
+      --line: #918d79;
+      --line-soft: rgba(51, 61, 54, .18);
+      --moss: #66765e;
+      --clay: #a15f49;
+      --blue: #526d73;
+      --ochre: #b08a43;
+      --wash: rgba(255,255,255,.20);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #1a1d1b;
+      color: var(--ink);
+    }
+
+    body {
+      font-family: "Avenir Next", "Noto Sans CJK SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #stage {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 50% 50%;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow: 0 30px 100px rgba(0,0,0,.28);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(rgba(52,61,54,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(52,61,54,.035) 1px, transparent 1px);
+      background-size: 24px 24px;
+      isolation: isolate;
+    }
+
+    .slide.active { display: block; }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.11'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+      opacity: .22;
+      z-index: -1;
+    }
+
+    .topline {
+      position: absolute;
+      left: 76px;
+      right: 76px;
+      top: 52px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      border-top: 2px solid var(--ink);
+      padding-top: 12px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 17px;
+      line-height: 1;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .topline .center { color: var(--clay); }
+    .topline .right { text-align: right; color: var(--ink-soft); }
+
+    .footline {
+      position: absolute;
+      left: 76px;
+      right: 76px;
+      bottom: 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      color: var(--ink-soft);
+      font-size: 16px;
+      letter-spacing: .04em;
+    }
+
+    .page-index {
+      color: var(--ink);
+      font-size: 18px;
+      letter-spacing: .12em;
+    }
+
+    /* Slide 1 */
+    .cover-title {
+      position: absolute;
+      left: 76px;
+      top: 128px;
+      width: 690px;
+    }
+
+    .eyebrow {
+      margin-bottom: 26px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 19px;
+      letter-spacing: .16em;
+      color: var(--clay);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Songti SC", "STSong", "Noto Serif CJK SC", Georgia, serif;
+      font-size: 91px;
+      line-height: .98;
+      font-weight: 500;
+      letter-spacing: -.04em;
+    }
+
+    .subtitle {
+      margin-top: 34px;
+      width: 610px;
+      font-size: 31px;
+      line-height: 1.48;
+      font-weight: 500;
+      text-wrap: pretty;
+    }
+
+    .subtitle strong {
+      color: var(--clay);
+      font-weight: 650;
+    }
+
+    .instrument {
+      position: absolute;
+      left: 814px;
+      top: 122px;
+      width: 1030px;
+      height: 690px;
+      border-left: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .instrument-label {
+      position: absolute;
+      left: 30px;
+      top: 2px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 16px;
+      letter-spacing: .14em;
+      color: var(--ink-soft);
+    }
+
+    .cycle {
+      position: absolute;
+      left: 138px;
+      top: 92px;
+      width: 490px;
+      height: 490px;
+      border: 2px solid var(--ink);
+      border-right-color: transparent;
+      border-radius: 50%;
+      transform: rotate(-28deg);
+    }
+
+    .cycle::before,
+    .cycle::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+    }
+
+    .cycle::before {
+      inset: 40px;
+      border: 1px solid var(--line);
+      border-top-style: dashed;
+    }
+
+    .cycle::after {
+      inset: 95px;
+      border: 1px solid var(--moss);
+      opacity: .65;
+    }
+
+    .cycle-gap {
+      position: absolute;
+      left: 567px;
+      top: 153px;
+      width: 92px;
+      border-top: 3px solid var(--clay);
+      transform: rotate(51deg);
+    }
+
+    .cycle-gap::after {
+      content: "OPEN";
+      position: absolute;
+      right: -48px;
+      top: -9px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 14px;
+      letter-spacing: .12em;
+      color: var(--clay);
+      transform: rotate(-51deg);
+    }
+
+    .matrix {
+      position: absolute;
+      display: grid;
+      grid-template-columns: repeat(8, 18px);
+      grid-template-rows: repeat(8, 18px);
+      gap: 7px;
+    }
+
+    .matrix i {
+      display: block;
+      width: 18px;
+      height: 18px;
+      background: var(--ink);
+      opacity: calc(.14 + var(--v) * .09);
+    }
+
+    .matrix-a { left: 310px; top: 247px; transform: rotate(8deg); }
+    .matrix-b { right: 52px; top: 148px; }
+    .matrix-b i { background: var(--blue); }
+
+    .axis-note {
+      position: absolute;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 15px;
+      letter-spacing: .08em;
+      color: var(--ink-soft);
+    }
+    .axis-note.a { left: 50px; bottom: 42px; }
+    .axis-note.b { right: 12px; bottom: 42px; writing-mode: vertical-rl; }
+
+    .phase-marker {
+      position: absolute;
+      right: 44px;
+      bottom: 88px;
+      width: 290px;
+    }
+
+    .phase-marker .big {
+      display: block;
+      font-family: "Songti SC", "STSong", serif;
+      font-size: 58px;
+      line-height: 1;
+      color: var(--clay);
+    }
+
+    .phase-marker .small {
+      display: block;
+      margin-top: 12px;
+      border-top: 1px solid var(--clay);
+      padding-top: 9px;
+      font-size: 22px;
+      line-height: 1.35;
+    }
+
+    .status-rail {
+      position: absolute;
+      left: 76px;
+      right: 76px;
+      top: 842px;
+      height: 140px;
+      display: grid;
+      grid-template-columns: 1.28fr 1fr 1fr 1fr;
+      border-top: 2px solid var(--ink);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .status-cell {
+      position: relative;
+      padding: 16px 24px 12px 18px;
+      border-right: 1px solid var(--line);
+    }
+    .status-cell:last-child { border-right: 0; }
+
+    .status-kicker {
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 14px;
+      letter-spacing: .12em;
+      color: var(--ink-soft);
+    }
+
+    .status-main {
+      margin-top: 10px;
+      font-size: 24px;
+      line-height: 1.28;
+      font-weight: 600;
+    }
+
+    .status-cell.done::before,
+    .status-cell.open::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: -7px;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      background: var(--paper);
+    }
+    .status-cell.done::before { background: var(--moss); }
+    .status-cell.open::before { border-color: var(--clay); border-right-color: transparent; }
+    .status-cell.open .status-main { color: var(--clay); }
+
+    /* Slide 2 */
+    .analysis-head {
+      position: absolute;
+      left: 76px;
+      top: 120px;
+      right: 76px;
+      display: grid;
+      grid-template-columns: 690px 1fr;
+      gap: 68px;
+      align-items: end;
+    }
+
+    .analysis-head h2 {
+      margin: 0;
+      font-family: "Songti SC", "STSong", "Noto Serif CJK SC", Georgia, serif;
+      font-weight: 500;
+      font-size: 64px;
+      line-height: 1.06;
+      letter-spacing: -.035em;
+    }
+
+    .analysis-head .takeaway {
+      border-left: 4px solid var(--clay);
+      padding-left: 25px;
+      font-size: 29px;
+      line-height: 1.45;
+      text-wrap: pretty;
+    }
+
+    .analysis-head .takeaway strong {
+      color: var(--clay);
+      font-weight: 650;
+    }
+
+    .specimen-area {
+      position: absolute;
+      left: 76px;
+      right: 76px;
+      top: 314px;
+      height: 600px;
+      display: grid;
+      grid-template-columns: 250px 1fr 1fr 330px;
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+    }
+
+    .column {
+      position: relative;
+      border-right: 1px solid var(--line);
+      padding: 22px 26px;
+    }
+    .column:last-child { border-right: 0; }
+
+    .col-label {
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 15px;
+      letter-spacing: .13em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+    }
+
+    .row-key {
+      height: 190px;
+      padding-top: 70px;
+      border-bottom: 1px solid var(--line);
+    }
+    .row-key:last-child { border-bottom: 0; }
+
+    .row-key b {
+      display: block;
+      font-family: "Songti SC", "STSong", serif;
+      font-size: 31px;
+      font-weight: 500;
+    }
+
+    .row-key span {
+      display: block;
+      margin-top: 9px;
+      font-size: 17px;
+      color: var(--ink-soft);
+    }
+
+    .model-cell {
+      height: 190px;
+      position: relative;
+      border-bottom: 1px solid var(--line);
+      padding-top: 28px;
+    }
+    .model-cell:last-child { border-bottom: 0; }
+
+    .value-line {
+      display: grid;
+      grid-template-columns: 125px 1fr;
+      gap: 18px;
+      align-items: end;
+    }
+
+    .value {
+      font-family: "Iowan Old Style", "Songti SC", Georgia, serif;
+      font-size: 64px;
+      line-height: .9;
+      letter-spacing: -.04em;
+    }
+
+    .metric-name {
+      padding-bottom: 6px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 14px;
+      line-height: 1.35;
+      color: var(--ink-soft);
+    }
+
+    .track {
+      position: relative;
+      height: 42px;
+      margin-top: 22px;
+      border-top: 1px solid var(--ink);
+    }
+
+    .track::before,
+    .track::after {
+      position: absolute;
+      top: 8px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .track::before { content: "0"; left: 0; }
+    .track::after { content: "1"; right: 0; }
+
+    .track .mark {
+      position: absolute;
+      top: -8px;
+      left: calc(var(--p) * 100%);
+      width: 2px;
+      height: 28px;
+      background: var(--clay);
+    }
+    .track .mark::before {
+      content: "";
+      position: absolute;
+      left: -5px;
+      top: -5px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--clay);
+    }
+
+    .model-title {
+      position: absolute;
+      top: 20px;
+      right: 26px;
+      font-family: "Songti SC", "STSong", Georgia, serif;
+      font-size: 34px;
+      color: var(--blue);
+    }
+
+    .evidence .big-count {
+      margin-top: 48px;
+      font-family: "Iowan Old Style", Georgia, serif;
+      font-size: 78px;
+      line-height: .9;
+      letter-spacing: -.05em;
+    }
+
+    .evidence .big-count small {
+      font-size: 23px;
+      letter-spacing: 0;
+    }
+
+    .evidence p {
+      margin: 20px 0 0;
+      font-size: 21px;
+      line-height: 1.45;
+    }
+
+    .convergence {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(13, 1fr);
+      gap: 5px;
+    }
+    .convergence i {
+      height: 11px;
+      background: var(--moss);
+    }
+
+    .json-strip {
+      position: absolute;
+      left: 26px;
+      right: 26px;
+      bottom: 24px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--ink-soft);
+    }
+
+    .interpretation {
+      position: absolute;
+      left: 76px;
+      right: 76px;
+      top: 930px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 40px;
+      font-size: 20px;
+      line-height: 1.35;
+    }
+
+    .interpretation strong {
+      color: var(--clay);
+      font-weight: 650;
+    }
+
+    .caution {
+      flex: 0 0 auto;
+      border: 1px solid var(--clay);
+      padding: 9px 14px;
+      font-family: "SFMono-Regular", "Roboto Mono", monospace;
+      font-size: 15px;
+      letter-spacing: .08em;
+      color: var(--clay);
+    }
+
+    #hint {
+      position: fixed;
+      right: 18px;
+      bottom: 14px;
+      z-index: 20;
+      color: rgba(255,255,255,.52);
+      font: 12px/1.2 "SFMono-Regular", monospace;
+      letter-spacing: .06em;
+      pointer-events: none;
+      transition: opacity .3s ease;
+    }
+  </style>
+</head>
+<body>
+  <main id="stage" aria-live="polite">
+    <section class="slide active" aria-label="封面与当前结论">
+      <header class="topline">
+        <span>J-LENS / REPRODUCTION LOG</span>
+        <span class="center">CURRENT STATE</span>
+        <span class="right">26 OCT 2026 · 11:08 CST</span>
+      </header>
+
+      <div class="cover-title">
+        <div class="eyebrow">研究仪器 03 · 阶段判读</div>
+        <h1>从拟合主体<br>进入结构分析</h1>
+        <p class="subtitle">
+          <strong>主干训练产物基本就位。</strong><br>
+          现有证据已经出现结构差异信号，<br>但实验链路仍有三处未闭合。
+        </p>
+      </div>
+
+      <div class="instrument" aria-label="循环边界与矩阵示意">
+        <div class="instrument-label">INSTRUMENT VIEW / JACOBIAN TRANSFER</div>
+        <div class="cycle"></div>
+        <div class="cycle-gap"></div>
+        <div class="matrix matrix-a" data-matrix></div>
+        <div class="matrix matrix-b" data-matrix></div>
+        <div class="axis-note a">LAYER TRANSFER →</div>
+        <div class="axis-note b">SPECTRAL RESPONSE</div>
+        <div class="phase-marker">
+          <span class="big">结构分析</span>
+          <span class="small">6 个 JSON 已生成<br>首批信号可供判读</span>
+        </div>
+      </div>
+
+      <div class="status-rail" aria-label="当前状态">
+        <div class="status-cell done">
+          <div class="status-kicker">FITTING OUTPUT</div>
+          <div class="status-main">Ouro 4/4 · Huginn primary 4/4<br>Nanbeige 2/2 lens</div>
+        </div>
+        <div class="status-cell done">
+          <div class="status-kicker">STRUCTURE</div>
+          <div class="status-main">distance · symmetry<br>factorisation 已运行</div>
+        </div>
+        <div class="status-cell open">
+          <div class="status-kicker">OPEN LOOP 01</div>
+          <div class="status-main">Huginn tiling<br>13 / 16 lens</div>
+        </div>
+        <div class="status-cell open">
+          <div class="status-kicker">OPEN LOOP 02–03</div>
+          <div class="status-main">Qwen 权重续传<br>语义协议待锁定</div>
+        </div>
+      </div>
+
+      <footer class="footline">
+        <span>代码 f9191a5 · 本地 19 项测试通过</span>
+        <span class="page-index">01 / 02</span>
+      </footer>
+    </section>
+
+    <section class="slide" aria-label="结构分析首批结果">
+      <header class="topline">
+        <span>J-LENS / STRUCTURAL ANALYSIS</span>
+        <span class="center">FIRST SIGNALS</span>
+        <span class="right">OURO ↔ HUGINN</span>
+      </header>
+
+      <div class="analysis-head">
+        <h2>同一把尺，出现<br>相反的误差轮廓</h2>
+        <div class="takeaway">
+          Ouro 在 factorisation 上更低，Huginn 在 symmetry 上更低。
+          这是一个<strong>值得继续追踪的交叉信号</strong>，不是论文结论。
+        </div>
+      </div>
+
+      <div class="specimen-area">
+        <div class="column">
+          <div class="col-label">MEASURE / 中位数</div>
+          <div class="row-key">
+            <b>对称性偏差</b>
+            <span>relative operator difference</span>
+          </div>
+          <div class="row-key">
+            <b>分解误差</b>
+            <span>relative operator error</span>
+          </div>
+          <div class="row-key">
+            <b>距离记录</b>
+            <span>operator norm · converged</span>
+          </div>
+        </div>
+
+        <div class="column">
+          <div class="col-label">SPECIMEN A</div>
+          <div class="model-title">Ouro</div>
+          <div class="model-cell">
+            <div class="value-line">
+              <div class="value">0.725</div>
+              <div class="metric-name">SYMMETRY<br>REL. OP. DIFF.</div>
+            </div>
+            <div class="track"><i class="mark" style="--p:.725"></i></div>
+          </div>
+          <div class="model-cell">
+            <div class="value-line">
+              <div class="value">0.210</div>
+              <div class="metric-name">FACTORISATION<br>REL. OP. ERROR</div>
+            </div>
+            <div class="track"><i class="mark" style="--p:.210"></i></div>
+          </div>
+          <div class="model-cell">
+            <div class="value-line">
+              <div class="value">27</div>
+              <div class="metric-name">DISTANCE<br>RECORDS</div>
+            </div>
+            <div class="track"><i class="mark" style="--p:1"></i></div>
+          </div>
+        </div>
+
+        <div class="column">
+          <div class="col-label">SPECIMEN B</div>
+          <div class="model-title">Huginn</div>
+          <div class="model-cell">
+            <div class="value-line">
+              <div class="value">0.209</div>
+              <div class="metric-name">SYMMETRY<br>REL. OP. DIFF.</div>
+            </div>
+            <div class="track"><i class="mark" style="--p:.209"></i></div>
+          </div>
+          <div class="model-cell">
+            <div class="value-line">
+              <div class="value">0.736</div>
+              <div class="metric-name">FACTORISATION<br>REL. OP. ERROR</div>
+            </div>
+            <div class="track"><i class="mark" style="--p:.736"></i></div>
+          </div>
+          <div class="model-cell">
+            <div class="value-line">
+              <div class="value">25</div>
+              <div class="metric-name">DISTANCE<br>RECORDS</div>
+            </div>
+            <div class="track"><i class="mark" style="--p:.926"></i></div>
+          </div>
+        </div>
+
+        <aside class="column evidence">
+          <div class="col-label">EVIDENCE REGISTER</div>
+          <div class="big-count">52 <small>/ 52</small></div>
+          <p>全部 distance 记录的 operator norm power iteration 均已收敛。</p>
+          <div class="convergence" aria-label="52 条记录均收敛">
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+          <div class="json-strip">
+            6 JSON<br>
+            OURO · 27 / 39 / 39<br>
+            HUGINN · 25 / 16 / 16<br>
+            distance / symmetry / factorisation
+          </div>
+        </aside>
+      </div>
+
+      <div class="interpretation">
+        <span><strong>下一步：</strong>按层位、lens 类型与样本条件拆分，检验差异是否稳定。</span>
+        <span class="caution">SIGNAL ≠ REPRODUCED CLAIM</span>
+      </div>
+
+      <footer class="footline">
+        <span>来源：DSW 结构分析 JSON · 事实截点 2026-10-26 11:08 CST</span>
+        <span class="page-index">02 / 02</span>
+      </footer>
+    </section>
+  </main>
+
+  <div id="hint">← → / SPACE · F FULLSCREEN</div>
+
+  <script>
+    (() => {
+      const stage = document.getElementById("stage");
+      const slides = [...document.querySelectorAll(".slide")];
+      const hint = document.getElementById("hint");
+      const hashIndex = Number(location.hash.replace("#", "")) - 1;
+      let index = Number.isInteger(hashIndex) && hashIndex >= 0
+        ? hashIndex
+        : Number(localStorage.getItem("jLensTakramSlide") || 0);
+      index = Math.max(0, Math.min(slides.length - 1, index));
+
+      document.querySelectorAll("[data-matrix]").forEach((matrix, matrixIndex) => {
+        for (let i = 0; i < 64; i += 1) {
+          const cell = document.createElement("i");
+          const x = i % 8;
+          const y = Math.floor(i / 8);
+          const value = ((x * 5 + y * 3 + matrixIndex * 4) % 9) + 1;
+          cell.style.setProperty("--v", value);
+          matrix.appendChild(cell);
+        }
+      });
+
+      function render() {
+        slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+        localStorage.setItem("jLensTakramSlide", String(index));
+      }
+
+      function scaleStage() {
+        const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+        stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+      }
+
+      function go(delta) {
+        index = Math.max(0, Math.min(slides.length - 1, index + delta));
+        render();
+      }
+
+      window.addEventListener("keydown", event => {
+        if (["ArrowRight", " ", "PageDown"].includes(event.key)) {
+          event.preventDefault();
+          go(1);
+        } else if (["ArrowLeft", "PageUp"].includes(event.key)) {
+          event.preventDefault();
+          go(-1);
+        } else if (event.key === "Home") {
+          index = 0;
+          render();
+        } else if (event.key === "End") {
+          index = slides.length - 1;
+          render();
+        } else if (event.key.toLowerCase() === "f") {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+          else document.exitFullscreen?.();
+        }
+      });
+
+      window.addEventListener("resize", scaleStage);
+      window.addEventListener("dblclick", () => document.documentElement.requestFullscreen?.());
+      setTimeout(() => { hint.style.opacity = "0"; }, 2600);
+
+      render();
+      scaleStage();
+      window.__deck = {
+        goTo(next) {
+          index = Math.max(0, Math.min(slides.length - 1, next));
+          render();
+        },
+        get index() { return index; }
+      };
+      window.__ready = true;
+    })();
+  </script>
+</body>
+</html>

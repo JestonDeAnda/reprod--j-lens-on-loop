@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>J-Lens 完整复现｜当前进展｜2026-10-26</title>
+  <!--
+    正式单文件 deck；事实截点 2026-10-26 11:25 CST。
+    视觉方向：C / Takram research instrument。
+    语义约定：实心节点=产物存在；双圈=程序已运行；短刻度=初步信号；开口环=未闭环。
+  -->
+  <style>
+    :root{
+      --paper:#e8e0cf;--paper2:#ded4bf;--ink:#1c2824;--soft:#505b53;
+      --line:#8f8b78;--faint:rgba(45,55,48,.16);--moss:#65765e;
+      --clay:#a45e47;--blue:#536e74;--ochre:#aa8645;--white:rgba(255,255,255,.22);
+    }
+    *{box-sizing:border-box}
+    html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#171b19;color:var(--ink)}
+    body{font-family:"Avenir Next","Noto Sans CJK SC","PingFang SC","Hiragino Sans GB",sans-serif;
+      -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+    #stage{position:fixed;left:50%;top:50%;width:1920px;height:1080px;transform-origin:50% 50%;
+      overflow:hidden;background:var(--paper);box-shadow:0 30px 100px rgba(0,0,0,.32)}
+    .slide{position:absolute;inset:0;display:none;width:1920px;height:1080px;overflow:hidden;
+      background-color:var(--paper);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M24 0H0V24' fill='none' stroke='%23333d36' stroke-opacity='.045'/%3E%3C/svg%3E")}
+    .slide.active{display:block}
+    .slide::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:20;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.68' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.06'/%3E%3C/svg%3E");opacity:.18;mix-blend-mode:multiply}
+    .top{position:absolute;left:76px;right:76px;top:48px;display:grid;grid-template-columns:1fr auto 1fr;
+      border-top:2px solid var(--ink);padding-top:12px;font:600 17px/1 "SFMono-Regular","Roboto Mono",monospace;
+      letter-spacing:.12em;text-transform:uppercase;z-index:2}
+    .top .c{color:var(--clay)}.top .r{text-align:right;color:var(--soft)}
+    .foot{position:absolute;left:76px;right:76px;bottom:38px;border-top:1px solid var(--line);padding-top:10px;
+      display:flex;justify-content:space-between;color:var(--soft);font:500 17px/1.2 "SFMono-Regular",monospace;letter-spacing:.03em}
+    .kicker{font:600 20px/1.1 "SFMono-Regular",monospace;letter-spacing:.14em;color:var(--clay);text-transform:uppercase}
+    h1,h2,h3,p{margin:0}
+    h1,h2,h3{font-family:"Songti SC","STSong","Noto Serif CJK SC",Georgia,serif;font-weight:500}
+    h2{font-size:68px;line-height:1.05;letter-spacing:-.035em}
+    .lead{font-size:31px;line-height:1.45;font-weight:520;text-wrap:pretty}
+    .note{font-size:21px;line-height:1.45;color:var(--soft)}
+    .mono{font-family:"SFMono-Regular","Roboto Mono",monospace}
+    .clay{color:var(--clay)}.moss{color:var(--moss)}.blue{color:var(--blue)}
+    .rule{border-top:2px solid var(--ink)}.hair{border-top:1px solid var(--line)}
+    .open-dot,.done-dot,.run-dot,.signal-dot{display:inline-block;width:17px;height:17px;border-radius:50%;border:2px solid var(--ink);vertical-align:-2px}
+    .done-dot{background:var(--moss)}.run-dot{box-shadow:inset 0 0 0 4px var(--paper);background:var(--blue)}
+    .signal-dot{background:var(--clay);width:9px;height:17px;border:0;border-radius:0}
+    .open-dot{border-color:var(--clay);border-right-color:transparent}
+
+    /* Unified navigation */
+    #nav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:60;display:flex;gap:11px;align-items:center}
+    #nav button{width:10px;height:10px;padding:0;border:1px solid rgba(255,255,255,.55);border-radius:50%;
+      background:transparent;cursor:pointer}
+    #nav button.active{background:#e8e0cf;border-color:#e8e0cf;transform:scale(1.3)}
+    #hint{position:fixed;right:18px;bottom:12px;color:rgba(255,255,255,.52);font:12px "SFMono-Regular",monospace;letter-spacing:.06em;z-index:60}
+
+    /* 01 cover */
+    .cover-copy{position:absolute;left:76px;top:130px;width:690px}
+    .cover-copy h1{margin-top:24px;font-size:90px;line-height:.98;letter-spacing:-.045em}
+    .cover-copy .lead{margin-top:34px;width:625px}.cover-copy strong{color:var(--clay)}
+    .instrument{position:absolute;left:810px;top:120px;width:1034px;height:692px;border-left:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .instrument .caption{position:absolute;left:30px;top:0;font:500 20px "SFMono-Regular",monospace;letter-spacing:.08em;color:var(--soft)}
+    .cycle{position:absolute;left:120px;top:76px;width:500px;height:500px;border:2px solid var(--ink);border-right-color:transparent;border-radius:50%;transform:rotate(-28deg)}
+    .cycle::before,.cycle::after{content:"";position:absolute;border-radius:50%}
+    .cycle::before{inset:42px;border:1px dashed var(--line)}.cycle::after{inset:105px;border:1px solid var(--moss)}
+    .gap{position:absolute;left:554px;top:144px;width:96px;border-top:3px solid var(--clay);transform:rotate(51deg)}
+    .gap span{position:absolute;left:104px;top:-13px;color:var(--clay);font:600 17px "SFMono-Regular",monospace;transform:rotate(-51deg)}
+    .matrix{position:absolute;display:grid;grid-template-columns:repeat(8,18px);gap:7px}.matrix i{width:18px;height:18px;background:var(--ink);opacity:calc(.14 + var(--v)*.09)}
+    .matrix.ma{left:286px;top:238px;transform:rotate(8deg)}.matrix.mb{right:42px;top:145px}.matrix.mb i{background:var(--blue)}
+    .phase{position:absolute;right:45px;bottom:70px;width:300px}.phase b{display:block;font:500 58px/1 "Songti SC",serif;color:var(--clay)}
+    .phase span{display:block;margin-top:12px;border-top:1px solid var(--clay);padding-top:10px;font-size:25px;line-height:1.35}
+    .cover-rail{position:absolute;left:76px;right:76px;top:842px;height:138px;display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr;border-top:2px solid var(--ink);border-bottom:1px solid var(--line)}
+    .cover-cell{position:relative;padding:17px 20px;border-right:1px solid var(--line)}.cover-cell:last-child{border:0}
+    .cover-cell small{display:block;font:600 17px "SFMono-Regular",monospace;letter-spacing:.1em;color:var(--soft)}
+    .cover-cell b{display:block;margin-top:8px;font-size:26px;line-height:1.3}.cover-cell.open b{color:var(--clay)}
+    .cover-cell::before{content:"";position:absolute;left:0;top:-7px;width:12px;height:12px;border:2px solid var(--ink);border-radius:50%;background:var(--moss)}
+    .cover-cell.open::before{background:var(--paper);border-color:var(--clay);border-right-color:transparent}
+
+    /* 02 milestone epistemic ladder */
+    .s2-head{position:absolute;left:76px;top:132px;width:790px}.s2-head .lead{margin-top:22px}
+    .ladder{position:absolute;left:76px;right:76px;top:450px;height:440px;border-top:2px solid var(--ink);display:grid;grid-template-columns:repeat(4,1fr)}
+    .step{position:relative;padding:28px 34px;border-right:1px solid var(--line)}.step:last-child{border:0}
+    .step .num{font:500 76px/1 Georgia,serif;color:var(--line)}.step h3{margin-top:22px;font-size:39px;line-height:1.1}
+    .step p{margin-top:18px;font-size:27px;line-height:1.45}.step .state{position:absolute;left:34px;bottom:32px;font:600 19px "SFMono-Regular",monospace;letter-spacing:.08em}
+    .step::before{content:"";position:absolute;left:-9px;top:-9px;width:16px;height:16px;border:2px solid var(--ink);border-radius:50%;background:var(--paper)}
+    .step.exists::before{background:var(--moss)}.step.ran::before{background:var(--blue);box-shadow:inset 0 0 0 4px var(--paper)}
+    .step.signal::before{border-radius:0;width:9px;background:var(--clay);border:0}.step.open::before{border-color:var(--clay);border-right-color:transparent}
+    .step.signal .state,.step.open .state{color:var(--clay)}
+
+    /* 03 coverage array */
+    .s3-head{position:absolute;left:76px;top:128px;right:76px;display:flex;justify-content:space-between;align-items:end}
+    .s3-head .lead{width:660px;border-left:4px solid var(--moss);padding-left:24px}
+    .coverage{position:absolute;left:76px;right:76px;top:310px;height:570px;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+    .model-row{height:142px;display:grid;grid-template-columns:410px 170px 1fr;align-items:center;border-bottom:1px solid var(--line)}
+    .model-row:last-child{border:0}.model-name{font:500 37px "Songti SC",serif}.ratio{font:500 55px Georgia,serif}
+    .lenses{display:flex;gap:13px;align-items:center}.lens{width:45px;height:78px;border:2px solid var(--ink);position:relative}
+    .lens::after{content:"";position:absolute;left:7px;right:7px;bottom:7px;height:42px;background:var(--moss)}
+    .lens.missing{border-color:var(--clay);border-right-style:dashed}.lens.missing::after{display:none}
+    .coverage-key{position:absolute;right:0;bottom:-64px;display:flex;gap:28px;font-size:20px;color:var(--soft)}
+
+    /* 04 remote queue */
+    .s4-title{position:absolute;left:76px;top:132px;width:700px}
+    .queue{position:absolute;left:76px;right:76px;top:430px;height:435px;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);display:grid;grid-template-columns:1.1fr 1.35fr 1fr}
+    .queue-col{position:relative;padding:28px 34px;border-right:1px solid var(--line)}.queue-col:last-child{border:0}
+    .queue-col .label{font:600 19px "SFMono-Regular",monospace;letter-spacing:.1em;color:var(--soft)}
+    .queue-col h3{margin-top:38px;font-size:44px;line-height:1.1}.queue-col .big{margin-top:34px;font:500 88px/1 Georgia,serif}
+    .queue-col p{margin-top:22px;font-size:28px;line-height:1.42}.queue-col.waiting{color:var(--soft)}
+    .transfer-line{position:absolute;left:34px;right:34px;bottom:50px;border-top:3px solid var(--ink)}
+    .transfer-line::after{content:"";position:absolute;left:0;top:-8px;width:14px;height:14px;border-radius:50%;background:var(--clay)}
+    .shards{margin-top:36px;display:flex;gap:10px}.shards i{width:44px;height:95px;border:2px solid var(--ink);background:var(--moss)}
+    .queue-arrow{position:absolute;right:-21px;top:244px;width:42px;height:42px;background:var(--paper);border:2px solid var(--ink);transform:rotate(45deg);z-index:2}
+
+    /* 05 method */
+    .s5-head{position:absolute;left:76px;top:130px;width:650px}.s5-head .lead{margin-top:22px}
+    .method-canvas{position:absolute;left:760px;right:76px;top:128px;height:780px;border-left:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+    .jacobian{position:absolute;left:72px;top:108px;width:330px;height:330px;border:2px solid var(--ink);display:grid;grid-template-columns:repeat(8,1fr);gap:8px;padding:20px}
+    .jacobian i{background:var(--blue);opacity:calc(.16 + var(--v)*.08)}
+    .j-label{position:absolute;left:72px;top:62px;font:500 25px "SFMono-Regular",monospace}.transfer-arrow{position:absolute;left:440px;top:265px;width:170px;border-top:2px solid var(--ink)}
+    .transfer-arrow::after{content:"";position:absolute;right:-1px;top:-7px;width:12px;height:12px;border-top:2px solid var(--ink);border-right:2px solid var(--ink);transform:rotate(45deg)}
+    .method-ring{position:absolute;right:80px;top:93px;width:330px;height:330px;border:2px solid var(--clay);border-right-color:transparent;border-radius:50%}
+    .method-ring::before{content:"";position:absolute;inset:48px;border:1px dashed var(--line);border-radius:50%}
+    .primary{position:absolute;left:72px;right:80px;top:500px;display:grid;grid-template-columns:1.35fr 1fr;border-top:2px solid var(--ink)}
+    .measure{padding:22px 28px 0 0;border-right:1px solid var(--line);min-height:205px}.measure+ .measure{padding-left:28px;border:0}
+    .measure b{font:500 38px "Songti SC",serif}.measure p{margin-top:15px;font-size:27px;line-height:1.4}
+    .measure.primary-m b{color:var(--clay)}.method-steps{position:absolute;left:76px;top:520px;width:610px}
+    .method-step{display:grid;grid-template-columns:55px 1fr;gap:20px;padding:19px 0;border-top:1px solid var(--line);font-size:28px;line-height:1.35}
+    .method-step span:first-child{font:500 28px Georgia,serif;color:var(--clay)}
+
+    /* 06 comparison */
+    .s6-head{position:absolute;left:76px;right:76px;top:122px;display:grid;grid-template-columns:650px 1fr;gap:70px;align-items:end}
+    .s6-head .lead{border-left:4px solid var(--clay);padding-left:24px}
+    .compare{position:absolute;left:76px;right:76px;top:304px;height:610px;display:grid;grid-template-columns:280px 1fr 1fr 330px;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+    .ccol{position:relative;padding:22px 26px;border-right:1px solid var(--line)}.ccol:last-child{border:0}
+    .clabel{font:600 18px "SFMono-Regular",monospace;letter-spacing:.11em;color:var(--soft)}
+    .metric-row{height:190px;padding-top:58px;border-bottom:1px solid var(--line)}.metric-row:last-child{border:0}
+    .metric-row b{display:block;font:500 31px "Songti SC",serif}.metric-row span{display:block;margin-top:8px;font-size:20px;color:var(--soft)}
+    .sample-name{position:absolute;right:26px;top:18px;font:500 36px "Songti SC",serif;color:var(--blue)}
+    .sample-row{height:190px;padding-top:32px;border-bottom:1px solid var(--line)}.sample-row:last-child{border:0}
+    .sample-row .val{font:500 63px/.9 Georgia,serif}.sample-row small{margin-left:15px;font:600 17px "SFMono-Regular",monospace;color:var(--soft)}
+    .track{height:38px;margin-top:22px;border-top:1px solid var(--ink);position:relative}.track::before,.track::after{position:absolute;top:8px;font:15px "SFMono-Regular",monospace;color:var(--soft)}
+    .track::before{content:"0";left:0}.track::after{content:"1";right:0}.mark{position:absolute;left:calc(var(--p)*100%);top:-8px;width:2px;height:28px;background:var(--clay)}
+    .mark::before{content:"";position:absolute;left:-5px;top:-5px;width:12px;height:12px;border-radius:50%;background:var(--clay)}
+    .register .count{margin-top:42px;font:500 76px/.9 Georgia,serif}.register p{margin-top:20px;font-size:24px;line-height:1.42}
+    .ticks{margin-top:28px;display:grid;grid-template-columns:repeat(13,1fr);gap:5px}.ticks i{height:11px;background:var(--moss)}
+    .register .source{position:absolute;left:26px;right:26px;bottom:24px;border-top:1px solid var(--line);padding-top:12px;font:18px/1.5 "SFMono-Regular",monospace;color:var(--soft)}
+
+    /* 07 distance */
+    .s7-head{position:absolute;left:76px;top:128px;width:780px}.s7-head .lead{margin-top:22px}
+    .distance-plot{position:absolute;left:76px;right:76px;top:440px;height:410px;border-left:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+    .distance-plot .axis-y{position:absolute;left:18px;top:14px;font:600 19px "SFMono-Regular",monospace;letter-spacing:.09em;color:var(--soft)}
+    .distance-plot .axis-x{position:absolute;right:0;bottom:-42px;font:600 19px "SFMono-Regular",monospace;letter-spacing:.09em;color:var(--soft)}
+    .distance-col{position:absolute;bottom:0;width:320px;border:2px solid var(--ink);border-bottom:0;background:rgba(101,118,94,.18)}
+    .distance-col.ouro{left:320px;height:390px}.distance-col.huginn{left:1000px;height:362px;border-color:var(--blue);background:rgba(83,110,116,.17)}
+    .distance-col .n{position:absolute;left:30px;top:30px;font:500 92px/1 Georgia,serif}.distance-col .name{position:absolute;left:30px;bottom:28px;font:500 37px "Songti SC",serif}
+    .distance-col .converged{position:absolute;right:-175px;top:22px;width:150px;border-top:2px solid var(--clay);padding-top:8px;font:600 18px/1.35 "SFMono-Regular",monospace;color:var(--clay)}
+    .distance-summary{position:absolute;right:90px;top:120px;width:370px;border-top:2px solid var(--ink);padding-top:18px;font-size:29px;line-height:1.45}
+    .distance-summary strong{font:500 78px/1 Georgia,serif;color:var(--clay)}
+
+    /* 08 archive */
+    .s8-head{position:absolute;left:76px;top:130px;width:680px}
+    .archive-ring{position:absolute;left:850px;top:140px;width:500px;height:500px;border:3px solid var(--ink);border-right-color:transparent;border-radius:50%;transform:rotate(-18deg)}
+    .archive-ring::before{content:"";position:absolute;inset:45px;border:1px dashed var(--line);border-radius:50%}
+    .archive-ring .size{position:absolute;left:125px;top:145px;transform:rotate(18deg);font:500 102px/1 Georgia,serif}.archive-ring .gb{font-size:31px}
+    .archive-ring .status{position:absolute;left:140px;top:270px;transform:rotate(18deg);font-size:26px}
+    .shard-bank{position:absolute;right:90px;top:220px;width:370px}.shard-bank .label{font:600 19px "SFMono-Regular",monospace;color:var(--soft);letter-spacing:.08em}
+    .shard-bank .bars{display:flex;gap:15px;margin-top:28px}.shard-bank i{display:block;width:52px;height:160px;border:2px solid var(--ink);background:var(--moss)}
+    .risk-ledger{position:absolute;left:76px;right:76px;top:700px;height:210px;display:grid;grid-template-columns:1.1fr 1fr 1fr;border-top:2px solid var(--ink);border-bottom:1px solid var(--line)}
+    .risk{position:relative;padding:24px 28px;border-right:1px solid var(--line)}.risk:last-child{border:0}
+    .risk small{font:600 18px "SFMono-Regular",monospace;letter-spacing:.09em;color:var(--clay)}.risk b{display:block;margin-top:15px;font-size:30px;line-height:1.35}
+    .risk::before{content:"";position:absolute;left:0;top:-9px;width:16px;height:16px;border:2px solid var(--clay);border-right-color:transparent;border-radius:50%;background:var(--paper)}
+
+    /* 09 decisions */
+    .s9-head{position:absolute;left:76px;top:130px;width:720px}.s9-head h2{font-size:77px}.s9-head .lead{margin-top:24px}
+    .next-loop{position:absolute;left:850px;top:140px;width:420px;height:420px;border:3px solid var(--ink);border-right-color:transparent;border-radius:50%}
+    .next-loop::before{content:"";position:absolute;inset:52px;border:1px dashed var(--line);border-radius:50%}
+    .next-loop b{position:absolute;left:92px;top:152px;font:500 52px "Songti SC",serif}.next-loop span{position:absolute;left:130px;top:225px;font:600 19px "SFMono-Regular",monospace;color:var(--clay)}
+    .decisions{position:absolute;left:76px;right:76px;top:620px;height:270px;display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+    .decision{padding:24px 30px;border-right:1px solid var(--line)}.decision:last-child{border:0}
+    .decision small{font:600 18px "SFMono-Regular",monospace;letter-spacing:.1em;color:var(--clay)}.decision h3{margin-top:20px;font-size:37px;line-height:1.15}
+    .decision p{margin-top:15px;font-size:24px;line-height:1.35;color:var(--soft)}
+    .sequence{position:absolute;right:76px;top:165px;width:470px}.seq{display:grid;grid-template-columns:42px 1fr;gap:18px;align-items:start;padding:16px 0;border-top:1px solid var(--line);font-size:27px;line-height:1.3}
+    .seq b{font:500 27px Georgia,serif;color:var(--clay)}
+
+    @media print{
+      @page{size:1920px 1080px;margin:0}
+      html,body{width:auto;height:auto;overflow:visible;background:white}
+      #stage{position:static;width:1920px;height:auto;transform:none!important;overflow:visible;box-shadow:none}
+      .slide,.slide.active{position:relative;display:block!important;width:1920px;height:1080px;page-break-after:always;break-after:page}
+      #nav,#hint{display:none!important}
+    }
+  </style>
+</head>
+<body>
+  <main id="stage" aria-live="polite">
+    <section class="slide active" aria-label="结论封面">
+      <header class="top"><span>J-LENS / REPRODUCTION LOG</span><span class="c">CURRENT STATE</span><span class="r">26 OCT 2026 · 11:25 CST</span></header>
+      <div class="cover-copy"><div class="kicker">阶段判读 / 01</div><h1>从拟合主体<br>进入结构分析</h1><p class="lead"><strong>主干训练产物基本就位。</strong><br>现有证据已经出现结构差异信号，<br>但实验链路仍有三处未闭合。</p></div>
+      <div class="instrument"><div class="caption">INSTRUMENT VIEW / JACOBIAN TRANSFER</div><div class="cycle"></div><div class="gap"><span>OPEN</span></div><div class="matrix ma" data-matrix></div><div class="matrix mb" data-matrix></div><div class="phase"><b>结构分析</b><span>6 个 JSON 已生成<br>首批信号可供判读</span></div></div>
+      <div class="cover-rail">
+        <div class="cover-cell"><small>FITTING OUTPUT</small><b>Ouro 4/4 · Huginn primary 4/4<br>Nanbeige 2/2 lens</b></div>
+        <div class="cover-cell"><small>STRUCTURE</small><b>distance · symmetry<br>factorisation 已运行</b></div>
+        <div class="cover-cell open"><small>OPEN LOOP 01</small><b>Huginn tiling<br>13 / 16 lens</b></div>
+        <div class="cover-cell open"><small>OPEN LOOP 02–03</small><b>Qwen 权重续传<br>语义协议待锁定</b></div>
+      </div>
+      <footer class="foot"><span>代码 f9191a5 · 本地 19 项测试通过</span><span>01 / 09</span></footer>
+    </section>
+
+    <section class="slide" aria-label="全局里程碑">
+      <header class="top"><span>J-LENS / STATUS MODEL</span><span class="c">EVIDENCE LADDER</span><span class="r">GLOBAL MILESTONES</span></header>
+      <div class="s2-head"><div class="kicker">证据阶梯 / 02</div><h2>已经走过三层，<br>还没有抵达第四层</h2><p class="lead">“产物存在”“程序运行”“出现信号”和“结论复现”必须分开陈述。</p></div>
+      <div class="ladder">
+        <div class="step exists"><div class="num">01</div><h3>训练产物<br>已经存在</h3><p>Ouro full、Huginn primary、Nanbeige full 已有完整 lens。</p><div class="state">MATERIAL EXISTS</div></div>
+        <div class="step ran"><div class="num">02</div><h3>分析程序<br>已经运行</h3><p>DSW 生成 Ouro 与 Huginn 的 6 个结构分析 JSON。</p><div class="state">ANALYSIS RAN</div></div>
+        <div class="step signal"><div class="num">03</div><h3>首批结果<br>出现信号</h3><p>symmetry 与 factorisation 呈现反向的中位误差轮廓。</p><div class="state">SIGNAL OBSERVED</div></div>
+        <div class="step open"><div class="num">04</div><h3>论文结论<br>尚未复现</h3><p>仍需完成链路并检验信号能否稳定。</p><div class="state">CLAIM OPEN</div></div>
+      </div>
+      <footer class="foot"><span>判读原则：不把初步信号升级为论文结论</span><span>02 / 09</span></footer>
+    </section>
+
+    <section class="slide" aria-label="Lens 训练覆盖">
+      <header class="top"><span>J-LENS / FITTING OUTPUT</span><span class="c">LENS COVERAGE</span><span class="r">4 CONFIGURATIONS</span></header>
+      <div class="s3-head"><div><div class="kicker">训练覆盖 / 03</div><h2>三条完整，<br>一条仍有缺口</h2></div><p class="lead">Huginn tiling 是当前唯一未完成的 lens 训练配置：13 / 16。</p></div>
+      <div class="coverage">
+        <div class="model-row"><div class="model-name">Ouro · full</div><div class="ratio">4 / 4</div><div class="lenses" data-lenses="4,4"></div></div>
+        <div class="model-row"><div class="model-name">Huginn · primary</div><div class="ratio">4 / 4</div><div class="lenses" data-lenses="4,4"></div></div>
+        <div class="model-row"><div class="model-name">Huginn · tiling</div><div class="ratio clay">13 / 16</div><div class="lenses" data-lenses="13,16"></div></div>
+        <div class="model-row"><div class="model-name">Nanbeige · full</div><div class="ratio">2 / 2</div><div class="lenses" data-lenses="2,2"></div></div>
+        <div class="coverage-key"><span><i class="done-dot"></i> lens 已存在</span><span><i class="open-dot"></i> 尚未闭合</span></div>
+      </div>
+      <footer class="foot"><span>来源：训练产物检查 · 截点 2026-10-26 11:25 CST</span><span>03 / 09</span></footer>
+    </section>
+
+    <section class="slide" aria-label="远端任务与资源">
+      <header class="top"><span>J-LENS / REMOTE WORK</span><span class="c">QUEUE & RESOURCES</span><span class="r">OSS ARCHIVE</span></header>
+      <div class="s4-title"><div class="kicker">远端队列 / 04</div><h2>归档在传输，<br>后续任务在等待</h2><p class="lead" style="margin-top:24px">Qwen3.6-27B 尚未归档完成，因此 Ouro-2.6B-Thinking 还未开始。</p></div>
+      <div class="queue">
+        <div class="queue-col"><div class="label">ACTIVE / OSS ARCHIVE</div><h3>Qwen3.6-27B</h3><div class="big">≈28 <span style="font-size:31px">GB</span></div><p>续传正在进行</p><div class="transfer-line"></div><div class="queue-arrow"></div></div>
+        <div class="queue-col"><div class="label">VERIFIED AT ROOT</div><h3>完整 shard</h3><div class="shards"><i></i><i></i><i></i><i></i><i></i></div><p>根目录当前只有 <span class="clay">5 个完整 shard</span></p><div class="queue-arrow"></div></div>
+        <div class="queue-col waiting"><div class="label">WAITING / NEXT</div><h3>Ouro-2.6B-<br>Thinking</h3><div class="big">0</div><p>尚未开始<br>排在 Qwen 之后</p></div>
+      </div>
+      <footer class="foot"><span>状态：远端任务仍按归档队列推进</span><span>04 / 09</span></footer>
+    </section>
+
+    <section class="slide" aria-label="结构分析方法">
+      <header class="top"><span>J-LENS / MEASUREMENT FRAME</span><span class="c">STRUCTURAL METHOD</span><span class="r">JACOBIAN OPERATORS</span></header>
+      <div class="s5-head"><div class="kicker">测量框架 / 05</div><h2>把层间传输<br>变成可比较的量</h2><p class="lead">operator norm 作为主读数，Frobenius 作为辅助视角；同一测量框架承载 distance、symmetry 与 factorisation。</p></div>
+      <div class="method-steps">
+        <div class="method-step"><span>01</span><span>从 Jacobian 的层间传输关系出发</span></div>
+        <div class="method-step"><span>02</span><span>分别运行 distance、symmetry、factorisation</span></div>
+        <div class="method-step"><span>03</span><span>先报告可追溯记录与收敛状态，再解释信号</span></div>
+      </div>
+      <div class="method-canvas"><div class="j-label">J / LAYER TRANSFER MATRIX</div><div class="jacobian" data-matrix></div><div class="transfer-arrow"></div><div class="method-ring"></div>
+        <div class="primary"><div class="measure primary-m"><b>operator norm / 主</b><p>52 个 distance 记录的 power iteration 均收敛。</p></div><div class="measure"><b>Frobenius / 辅</b><p>作为辅助测量视角，不替代主读数。</p></div></div>
+      </div>
+      <footer class="foot"><span>原则：先验证计算，再讨论结构解释</span><span>05 / 09</span></footer>
+    </section>
+
+    <section class="slide" aria-label="Ouro 与 Huginn 首批对照">
+      <header class="top"><span>J-LENS / STRUCTURAL ANALYSIS</span><span class="c">FIRST SIGNALS</span><span class="r">OURO ↔ HUGINN</span></header>
+      <div class="s6-head"><h2>同一把尺，出现<br>相反的误差轮廓</h2><p class="lead">Ouro 在 factorisation 上更低，Huginn 在 symmetry 上更低。这是一个<span class="clay">值得继续追踪的交叉信号</span>，不是论文结论。</p></div>
+      <div class="compare">
+        <div class="ccol"><div class="clabel">MEASURE / MEDIAN</div><div class="metric-row"><b>对称性偏差</b><span>relative operator difference</span></div><div class="metric-row"><b>分解误差</b><span>relative operator error</span></div><div class="metric-row"><b>距离记录</b><span>operator norm · converged</span></div></div>
+        <div class="ccol"><div class="clabel">SPECIMEN A</div><div class="sample-name">Ouro</div><div class="sample-row"><span class="val">0.725</span><small>SYMMETRY</small><div class="track"><i class="mark" style="--p:.725"></i></div></div><div class="sample-row"><span class="val">0.210</span><small>FACTORISATION</small><div class="track"><i class="mark" style="--p:.210"></i></div></div><div class="sample-row"><span class="val">27</span><small>DISTANCE</small><div class="track"><i class="mark" style="--p:1"></i></div></div></div>
+        <div class="ccol"><div class="clabel">SPECIMEN B</div><div class="sample-name">Huginn</div><div class="sample-row"><span class="val">0.209</span><small>SYMMETRY</small><div class="track"><i class="mark" style="--p:.209"></i></div></div><div class="sample-row"><span class="val">0.736</span><small>FACTORISATION</small><div class="track"><i class="mark" style="--p:.736"></i></div></div><div class="sample-row"><span class="val">25</span><small>DISTANCE</small><div class="track"><i class="mark" style="--p:.926"></i></div></div></div>
+        <aside class="ccol register"><div class="clabel">EVIDENCE REGISTER</div><div class="count">52 / 52</div><p>全部 distance 记录的 operator norm power iteration 均已收敛。</p><div class="ticks" data-ticks="52"></div><div class="source">6 JSON<br>OURO · 27 / 39 / 39<br>HUGINN · 25 / 16 / 16</div></aside>
+      </div>
+      <footer class="foot"><span>来源：DSW 结构分析 JSON</span><span>06 / 09</span></footer>
+    </section>
+
+    <section class="slide" aria-label="Operator norm 距离信号">
+      <header class="top"><span>J-LENS / DISTANCE RECORDS</span><span class="c">OPERATOR NORM</span><span class="r">CONVERGENCE CHECK</span></header>
+      <div class="s7-head"><div class="kicker">距离证据 / 07</div><h2>52 条记录，<br>52 次迭代收敛</h2><p class="lead">当前可以确认的是计算链路稳定与记录覆盖；距离值本身仍需按层位、lens 类型与样本条件拆分解释。</p></div>
+      <div class="distance-summary"><strong>100%</strong><br>power iteration 收敛<br><span class="note">27 Ouro + 25 Huginn</span></div>
+      <div class="distance-plot"><div class="axis-y">RECORD COUNT / CONVERGED</div><div class="axis-x">TWO ANALYSIS SETS</div><div class="distance-col ouro"><span class="n">27</span><span class="name">Ouro</span><span class="converged">27 / 27<br>CONVERGED</span></div><div class="distance-col huginn"><span class="n">25</span><span class="name">Huginn</span><span class="converged">25 / 25<br>CONVERGED</span></div></div>
+      <footer class="foot"><span>这里只报告可核实的记录数与收敛状态，不推断距离分布</span><span>07 / 09</span></footer>
+    </section>
+
+    <section class="slide" aria-label="权重归档与风险">
+      <header class="top"><span>J-LENS / OPEN LOOPS</span><span class="c">ARCHIVE & RISK</span><span class="r">OSS TRANSFER</span></header>
+      <div class="s8-head"><div class="kicker">归档风险 / 08</div><h2>文件量在增长，<br>完整性仍未闭环</h2><p class="lead" style="margin-top:24px">约 28GB 并不等于归档完成；根目录可确认的完整 shard 仍只有 5 个。</p></div>
+      <div class="archive-ring"><div class="size">≈28 <span class="gb">GB</span></div><div class="status">Qwen3.6-27B<br><span class="clay">续传进行中</span></div></div>
+      <div class="shard-bank"><div class="label">COMPLETE SHARDS / ROOT</div><div class="bars"><i></i><i></i><i></i><i></i><i></i></div><p class="lead" style="margin-top:22px">5 个完整 shard</p></div>
+      <div class="risk-ledger"><div class="risk"><small>QUEUE DEPENDENCY</small><b>Ouro-2.6B-Thinking 尚未开始，排在 Qwen 之后</b></div><div class="risk"><small>TRAINING GAP</small><b>Huginn tiling 仍缺 3 个 lens</b></div><div class="risk"><small>SEMANTIC PROTOCOL</small><b>concept token、unembedding、prompt 协议待锁定</b></div></div>
+      <footer class="foot"><span>开口环表示尚未闭合的实验链路</span><span>08 / 09</span></footer>
+    </section>
+
+    <section class="slide" aria-label="下一阶段与需要决定">
+      <header class="top"><span>J-LENS / NEXT PHASE</span><span class="c">DECISION FRAME</span><span class="r">CLOSE THE LOOPS</span></header>
+      <div class="s9-head"><div class="kicker">下一阶段 / 09</div><h2>先闭环，<br>再升级结论</h2><p class="lead">下一阶段的主线不是增加更多叙述，而是完成剩余链路并验证首批信号是否稳定。</p></div>
+      <div class="next-loop"><b>闭合链路</b><span>THEN TEST THE SIGNAL</span></div>
+      <div class="sequence"><div class="seq"><b>01</b><span>完成 Huginn tiling 的剩余 3 个 lens</span></div><div class="seq"><b>02</b><span>继续 Qwen 归档，再启动 Ouro-2.6B-Thinking</span></div><div class="seq"><b>03</b><span>锁定 concept token、unembedding 与 prompt 协议</span></div><div class="seq"><b>04</b><span>拆分结构记录，检验交叉信号能否稳定</span></div></div>
+      <div class="decisions">
+        <div class="decision"><small>DECISION 01</small><h3>语义协议如何锁定？</h3><p>需要明确 concept token、unembedding 和 prompt 协议。</p></div>
+        <div class="decision"><small>DECISION 02</small><h3>先验证哪条信号？</h3><p>以 symmetry / factorisation 的交叉对照作为拆分分析入口。</p></div>
+        <div class="decision"><small>DECISION 03</small><h3>何时称为复现？</h3><p>保持“产物、运行、信号、结论”四层边界。</p></div>
+      </div>
+      <footer class="foot"><span>当前底座：f9191a5 · 本地 19 项测试通过</span><span>09 / 09</span></footer>
+    </section>
+  </main>
+  <nav id="nav" aria-label="幻灯片目录"></nav>
+  <div id="hint">← → / SPACE · HOME END · F</div>
+  <script>
+    (() => {
+      const stage=document.getElementById("stage"),slides=[...document.querySelectorAll(".slide")],nav=document.getElementById("nav");
+      document.querySelectorAll("[data-matrix]").forEach((m,k)=>{for(let i=0;i<64;i++){const c=document.createElement("i");c.style.setProperty("--v",((i%8)*5+Math.floor(i/8)*3+k*4)%9+1);m.appendChild(c)}});
+      document.querySelectorAll("[data-lenses]").forEach(el=>{const [done,total]=el.dataset.lenses.split(",").map(Number);for(let i=0;i<total;i++){const x=document.createElement("i");x.className="lens"+(i>=done?" missing":"");el.appendChild(x)}});
+      document.querySelectorAll("[data-ticks]").forEach(el=>{for(let i=0;i<Number(el.dataset.ticks);i++)el.appendChild(document.createElement("i"))});
+      slides.forEach((s,i)=>{const b=document.createElement("button");b.type="button";b.title=`${String(i+1).padStart(2,"0")} · ${s.getAttribute("aria-label")}`;b.setAttribute("aria-label",b.title);b.addEventListener("click",()=>show(i));nav.appendChild(b)});
+      const hash=Number(location.hash.slice(1))-1;
+      let index=Number.isInteger(hash)&&hash>=0?hash:Number(localStorage.getItem("jLensProgressSlide")||0);
+      index=Math.max(0,Math.min(slides.length-1,index));
+      function show(next){index=Math.max(0,Math.min(slides.length-1,next));slides.forEach((s,i)=>s.classList.toggle("active",i===index));[...nav.children].forEach((b,i)=>b.classList.toggle("active",i===index));localStorage.setItem("jLensProgressSlide",String(index));history.replaceState(null,"",`#${index+1}`)}
+      function scale(){const z=Math.min(innerWidth/1920,innerHeight/1080);stage.style.transform=`translate(-50%,-50%) scale(${z})`}
+      addEventListener("keydown",e=>{if(["ArrowRight"," ","PageDown"].includes(e.key)){e.preventDefault();show(index+1)}else if(["ArrowLeft","PageUp"].includes(e.key)){e.preventDefault();show(index-1)}else if(e.key==="Home"){show(0)}else if(e.key==="End"){show(slides.length-1)}else if(e.key.toLowerCase()==="f"){document.fullscreenElement?document.exitFullscreen?.():document.documentElement.requestFullscreen?.()}});
+      addEventListener("resize",scale);addEventListener("hashchange",()=>{const n=Number(location.hash.slice(1))-1;if(Number.isInteger(n))show(n)});
+      show(index);scale();window.__deck={show,get index(){return index},slides};window.__ready=true;
+    })();
+  </script>
+</body>
+</html>
