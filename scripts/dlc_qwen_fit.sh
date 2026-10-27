@@ -4,14 +4,15 @@ set -euo pipefail
 
 NAS=/mnt/nas-save/nas-save
 ROOT=$NAS/wangjunqi/j-lens-on-loop-qwen
-MODEL=$ROOT/models/Qwen3.6-27B
+MODEL_ARCHIVE=/mnt/oss-save/modelscope/Qwen/Qwen3.6-27B
+MODEL=/tmp/Qwen3.6-27B
 JLENS_SRC=$NAS/wangjunqi/deps/jacobian-lens
 PROMPT_CACHE=$NAS/wangjunqi/j-lens-on-loop/cache/wikitext-1000x128.json
 RUN_NAME=${RUN_NAME:-qwen-full-$(date -u +%Y%m%dT%H%M%SZ)}
 OUT=$ROOT/runs/$RUN_NAME
 OSS_OUT=/mnt/oss-save/wangjunqi/j-lens-on-loop/runs/$RUN_NAME
 
-for path in "$ROOT/pyproject.toml" "$MODEL/model.safetensors.index.json" \
+for path in "$ROOT/pyproject.toml" "$MODEL_ARCHIVE/model.safetensors.index.json" \
   "$JLENS_SRC/pyproject.toml" "$PROMPT_CACHE"; do
   if [[ ! -f $path ]]; then
     echo "required persistent file is missing: $path"
@@ -39,11 +40,32 @@ export HF_HUB_DISABLE_XET=1
 export TOKENIZERS_PARALLELISM=false
 export PYTHONUNBUFFERED=1
 
+echo "staging Qwen weights from OSS to node-local disk"
+mkdir -p "$MODEL"
+cp -a "$MODEL_ARCHIVE"/* "$MODEL/"
+python3 - <<PY
+import json
+from pathlib import Path
+
+model = Path("$MODEL")
+index = json.loads((model / "model.safetensors.index.json").read_text())
+shards = sorted(set(index["weight_map"].values()))
+missing = [name for name in shards if not (model / name).is_file()]
+if missing:
+    raise SystemExit(f"missing node-local shards: {missing}")
+print(f"node-local Qwen archive ready: {len(shards)}/{len(shards)} shards")
+PY
+
 python3 -m pip install --upgrade-strategy only-if-needed -e "$JLENS_SRC"
 python3 -m pip install "transformers==5.20.1" "accelerate>=1.0" datasets pyyaml tqdm
 python3 -m pip install --upgrade-strategy only-if-needed -e "$ROOT" --no-deps
 
 cd "$ROOT"
+python3 scripts/fit_qwen.py \
+  --model "$MODEL" \
+  --output "$OUT/validate" \
+  --validate-only
+
 python3 scripts/fit_qwen.py \
   --model "$MODEL" \
   --output "$OUT/lenses" \
