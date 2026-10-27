@@ -116,14 +116,15 @@ run_huginn_primary() {
 }
 
 run_huginn_tiling() {
-  echo "=== paper fit huginn-tiling: r=1..16, full sources, ${PROMPTS} prompts ==="
+  local targets=${TILING_TARGETS:-1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16}
+  echo "=== paper fit huginn-tiling: targets=${targets}, full sources, ${PROMPTS} prompts ==="
   python3 scripts/fit_family.py huginn \
     --model "$HUGINN_MODEL" \
     --output "$OUT/huginn-tiling" \
     --prompts "$PROMPTS" \
     --prompt-cache "$PROMPT_CACHE" \
     --recurrences 16 \
-    --targets 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 \
+    --targets $targets \
     --full-sources \
     --max-seq-len "$MAX_SEQ_LEN" \
     --dim-batch "$DIM_BATCH" \
