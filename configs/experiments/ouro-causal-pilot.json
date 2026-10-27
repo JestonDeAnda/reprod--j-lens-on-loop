@@ -1,0 +1,78 @@
+{
+  "protocol_status": "synthetic_protocol_gate",
+  "architecture": "ouro",
+  "model": "/mnt/nas-save/nas-save/wangjunqi/ouro/models/Ouro-2.6B",
+  "lens": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop/runs/paper-fit-20261020T034458Z/ouro-paper/loop-4.lens.pt",
+  "seed": 183,
+  "max_seq_len": 96,
+  "generate_tokens": 4,
+  "conditions": [
+    {"name": "baseline"},
+    {"name": "jacobian_add", "direction": "jacobian", "mode": "add", "strength": 0.25},
+    {"name": "jacobian_ablate", "direction": "jacobian", "mode": "ablate", "strength": 1.0},
+    {"name": "random_add", "direction": "random", "mode": "add", "strength": 0.25},
+    {"name": "unrelated_add", "direction": "unrelated", "mode": "add", "strength": 0.25}
+  ],
+  "families": [
+    {
+      "name": "flexible_generalisation",
+      "source_offset": 96,
+      "templates": [
+        "{stem} Apply the same rule to a new example. The answer is",
+        "{stem} By generalizing the rule, we should say",
+        "{stem} For another matching object, the correct label is",
+        "{stem} Complete the rule-consistent conclusion:"
+      ],
+      "cases": [
+        {"stem": "In this invented system, all dax objects are blue.", "target": "blue", "control": "green"},
+        {"stem": "In this invented system, every wug is round.", "target": "round", "control": "square"},
+        {"stem": "The local rule assigns the word warm to each tev.", "target": "warm", "control": "cold"},
+        {"stem": "Every blicket in this puzzle receives the label north.", "target": "north", "control": "south"},
+        {"stem": "The codebook maps each zorp to the word small.", "target": "small", "control": "large"},
+        {"stem": "Under the stated convention, a kiki is always red.", "target": "red", "control": "black"},
+        {"stem": "The fictional grammar describes every fep as soft.", "target": "soft", "control": "hard"},
+        {"stem": "The rule for a tupa assigns it the label fast.", "target": "fast", "control": "slow"}
+      ]
+    },
+    {
+      "name": "argument_answer_control",
+      "source_offset": 48,
+      "templates": [
+        "{stem} Return only the result:",
+        "{stem} Therefore the answer is",
+        "{stem} Solve this operation. Result:",
+        "{stem} The computed value is"
+      ],
+      "cases": [
+        {"stem": "Add two and three.", "target": "five", "control": "four"},
+        {"stem": "Add four and three.", "target": "seven", "control": "six"},
+        {"stem": "Subtract three from nine.", "target": "six", "control": "seven"},
+        {"stem": "Subtract four from twelve.", "target": "eight", "control": "nine"},
+        {"stem": "Add five and four.", "target": "nine", "control": "eight"},
+        {"stem": "Subtract five from twelve.", "target": "seven", "control": "six"},
+        {"stem": "Add six and four.", "target": "ten", "control": "nine"},
+        {"stem": "Subtract two from thirteen.", "target": "eleven", "control": "twelve"}
+      ]
+    },
+    {
+      "name": "verbal_report",
+      "source_offset": 48,
+      "templates": [
+        "{stem} Report the remembered concept:",
+        "{stem} State the concept in one word:",
+        "{stem} When asked what was stored, answer",
+        "{stem} Verbalize the retained item:"
+      ],
+      "cases": [
+        {"stem": "Remember the concept ocean while reading this sentence.", "target": "ocean", "control": "forest"},
+        {"stem": "Keep the concept forest available for the later question.", "target": "forest", "control": "ocean"},
+        {"stem": "Store the concept music for a direct report.", "target": "music", "control": "silence"},
+        {"stem": "Maintain the concept winter until the final instruction.", "target": "winter", "control": "summer"},
+        {"stem": "Hold the concept silver in memory.", "target": "silver", "control": "gold"},
+        {"stem": "Retain the concept river for the answer.", "target": "river", "control": "mountain"},
+        {"stem": "Keep the concept morning active.", "target": "morning", "control": "evening"},
+        {"stem": "Remember the concept circle for the report.", "target": "circle", "control": "square"}
+      ]
+    }
+  ]
+}
