@@ -14,12 +14,33 @@ import torch
 _INSTALLED = False
 
 
+def _config_value(config, name: str, default=None):
+    """Read a field from either a legacy config attribute or ``rope_parameters``."""
+
+    try:
+        value = getattr(config, name)
+    except AttributeError:
+        value = None
+    if value is not None:
+        return value
+    parameters = getattr(config, "rope_parameters", None)
+    if isinstance(parameters, dict) and parameters.get(name) is not None:
+        return parameters[name]
+    return default
+
+
 def default_rope_parameters(config, device=None, seq_len=None, layer_type=None):
-    """Inverse frequencies for the original RoPE used by Ouro (``rope_type="default"``)."""
+    """Inverse frequencies for original RoPE (``rope_type="default"``).
+
+    Ouro publishes ``rope_theta`` directly. Qwen3.6 publishes the same value
+    inside ``rope_parameters``; both use this formula for the default type.
+    """
 
     del seq_len, layer_type
-    base = config.rope_theta
-    partial = getattr(config, "partial_rotary_factor", 1.0) or 1.0
+    base = _config_value(config, "rope_theta")
+    if base is None:
+        raise AttributeError("RoPE config has neither rope_theta nor rope_parameters['rope_theta']")
+    partial = _config_value(config, "partial_rotary_factor", 1.0) or 1.0
     head_dim = getattr(config, "head_dim", None) or (
         config.hidden_size // config.num_attention_heads
     )

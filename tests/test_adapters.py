@@ -223,6 +223,23 @@ def test_default_rope_parameters_match_original_formula():
     assert torch.allclose(inv_freq, expected)
 
 
+def test_nested_qwen_rope_parameters_use_the_same_formula():
+    config = SimpleNamespace(
+        hidden_size=32,
+        num_attention_heads=4,
+        head_dim=16,
+        rope_parameters={
+            "rope_type": "default",
+            "rope_theta": 10000.0,
+            "partial_rotary_factor": 0.5,
+        },
+    )
+    inv_freq, scale = default_rope_parameters(config)
+    exponent = torch.arange(0, 8, 2, dtype=torch.float) / 8
+    assert scale == 1.0
+    assert torch.allclose(inv_freq, 1.0 / (10000.0 ** exponent))
+
+
 def test_ouro_remote_rotary_init_does_not_require_library_method():
     from transformers.modeling_utils import PreTrainedModel
 
