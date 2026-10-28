@@ -1,0 +1,11 @@
+{
+  "protocol_status": "released_prompts_loop_band_adaptation",
+  "architecture": "ouro",
+  "model": "/mnt/nas-save/nas-save/wangjunqi/ouro/models/Ouro-2.6B",
+  "lens": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop/runs/paper-fit-20261020T034458Z/ouro-paper/loop-4.lens.pt",
+  "data": "/mnt/nas-save/nas-save/wangjunqi/deps/jacobian-lens/data/experiments/verbal-introspection.json",
+  "band_start": 168,
+  "band_end": 190,
+  "strengths": [0.0, 0.01, 0.025, 0.05, 0.1],
+  "seed": 183
+}

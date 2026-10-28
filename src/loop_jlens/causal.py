@@ -45,6 +45,7 @@ def intervene_residual(
     positions: Sequence[int],
     mode: str,
     strength: float,
+    scale_mode: str = "per_position",
 ) -> Tensor:
     """Apply an additive or projection-ablation intervention without mutation."""
 
@@ -56,7 +57,13 @@ def intervene_residual(
     selected = result[:, list(positions), :]
     direction = unit_direction(direction).to(selected.device, selected.dtype)
     if mode == "add":
-        scale = torch.linalg.vector_norm(selected.float(), dim=-1, keepdim=True)
+        norms = torch.linalg.vector_norm(selected.float(), dim=-1, keepdim=True)
+        if scale_mode == "per_position":
+            scale = norms
+        elif scale_mode == "mean":
+            scale = norms.mean(dim=1, keepdim=True)
+        else:
+            raise ValueError(f"unsupported scale mode: {scale_mode}")
         selected = selected + strength * scale.to(selected.dtype) * direction
     elif mode == "ablate":
         projection = torch.sum(selected * direction, dim=-1, keepdim=True)
@@ -93,6 +100,7 @@ def residual_intervention(
     positions: Sequence[int] = (-1,),
     mode: str = "add",
     strength: float = 0.5,
+    scale_mode: str = "per_position",
 ) -> Iterator[None]:
     """Temporarily modify one virtual residual-stream block."""
 
@@ -103,6 +111,7 @@ def residual_intervention(
             positions=positions,
             mode=mode,
             strength=strength,
+            scale_mode=scale_mode,
         )
         return _replace_first_tensor(output, changed)
 
