@@ -74,6 +74,29 @@ def intervene_residual(
     return result
 
 
+def swap_direction_coordinate(
+    hidden: Tensor,
+    source_direction: Tensor,
+    target_direction: Tensor,
+    *,
+    positions: Sequence[int],
+    strength: float = 1.0,
+) -> Tensor:
+    """Transfer the source coordinate into the target coordinate."""
+
+    result = hidden.clone()
+    selected = result[:, list(positions), :]
+    source = unit_direction(source_direction).to(selected.device, selected.dtype)
+    target = unit_direction(target_direction).to(selected.device, selected.dtype)
+    basis = torch.stack([source, target], dim=1)
+    gram_inverse = torch.linalg.pinv((basis.T @ basis).float()).to(basis.dtype)
+    coefficients = selected @ basis @ gram_inverse
+    source_coefficient = coefficients[..., :1]
+    delta = source_coefficient * (target - source)
+    result[:, list(positions), :] = selected + strength * delta
+    return result
+
+
 def _first_tensor(output):
     if torch.is_tensor(output):
         return output
@@ -112,6 +135,34 @@ def residual_intervention(
             mode=mode,
             strength=strength,
             scale_mode=scale_mode,
+        )
+        return _replace_first_tensor(output, changed)
+
+    handle = block.register_forward_hook(hook)
+    try:
+        yield
+    finally:
+        handle.remove()
+
+
+@contextmanager
+def residual_coordinate_swap(
+    block: nn.Module,
+    source_direction: Tensor,
+    target_direction: Tensor,
+    *,
+    positions: Sequence[int],
+    strength: float = 1.0,
+) -> Iterator[None]:
+    """Temporarily replace one J-Lens coordinate with another."""
+
+    def hook(_module, _inputs, output):
+        changed = swap_direction_coordinate(
+            _first_tensor(output),
+            source_direction,
+            target_direction,
+            positions=positions,
+            strength=strength,
         )
         return _replace_first_tensor(output, changed)
 

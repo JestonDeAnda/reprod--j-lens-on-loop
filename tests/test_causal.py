@@ -7,6 +7,7 @@ from loop_jlens.causal import (
     orthogonal_control_direction,
     random_control_direction,
     residual_intervention,
+    swap_direction_coordinate,
     token_rank,
 )
 
@@ -55,6 +56,17 @@ def test_projection_ablation_removes_direction_component() -> None:
     ):
         changed = block(hidden)
     assert torch.allclose(changed, torch.tensor([[[0.0, 4.0]]]))
+
+
+def test_coordinate_swap_moves_source_coefficient_to_target() -> None:
+    hidden = torch.tensor([[[3.0, 4.0]]])
+    changed = swap_direction_coordinate(
+        hidden,
+        torch.tensor([1.0, 0.0]),
+        torch.tensor([0.0, 1.0]),
+        positions=(-1,),
+    )
+    assert torch.allclose(changed, torch.tensor([[[0.0, 7.0]]]))
 
 
 def test_token_rank() -> None:
