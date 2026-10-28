@@ -1,0 +1,17 @@
+{
+  "base_config": "ouro-causal-pilot.json",
+  "conditions": [
+    {"name": "baseline"},
+    {"name": "jacobian_add_005", "direction": "jacobian", "mode": "add", "strength": 0.05},
+    {"name": "jacobian_add_010", "direction": "jacobian", "mode": "add", "strength": 0.1},
+    {"name": "jacobian_add_025", "direction": "jacobian", "mode": "add", "strength": 0.25},
+    {"name": "unrelated_add_005", "direction": "unrelated", "mode": "add", "strength": 0.05},
+    {"name": "unrelated_add_010", "direction": "unrelated", "mode": "add", "strength": 0.1},
+    {"name": "unrelated_add_025", "direction": "unrelated", "mode": "add", "strength": 0.25},
+    {"name": "orthogonal_add_005", "direction": "unrelated_orthogonal", "mode": "add", "strength": 0.05},
+    {"name": "orthogonal_add_010", "direction": "unrelated_orthogonal", "mode": "add", "strength": 0.1},
+    {"name": "orthogonal_add_025", "direction": "unrelated_orthogonal", "mode": "add", "strength": 0.25},
+    {"name": "random_add_010", "direction": "random", "mode": "add", "strength": 0.1},
+    {"name": "jacobian_ablate", "direction": "jacobian", "mode": "ablate", "strength": 1.0}
+  ]
+}

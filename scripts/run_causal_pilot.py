@@ -17,6 +17,7 @@ from jlens.hooks import ActivationRecorder
 
 from loop_jlens.causal import (
     jacobian_token_direction,
+    orthogonal_control_direction,
     random_control_direction,
     residual_intervention,
     token_rank,
@@ -29,6 +30,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--device-map", default="auto")
     return parser.parse_args()
+
+
+def load_config(path: Path) -> dict:
+    config = json.loads(path.read_text())
+    base_name = config.pop("base_config", None)
+    if base_name is None:
+        return config
+    base_path = path.parent / base_name
+    base = json.loads(base_path.read_text())
+    base.update(config)
+    return base
 
 
 def expand_cases(config: dict) -> list[dict]:
@@ -107,7 +119,7 @@ def run_condition(
 
 def main() -> None:
     args = parse_args()
-    config = json.loads(args.config.read_text())
+    config = load_config(args.config)
     torch.manual_seed(config["seed"])
     configure_exact_forward()
     model_args = SimpleNamespace(
@@ -140,12 +152,16 @@ def main() -> None:
             unrelated_direction = jacobian_token_direction(
                 jacobian, unembedding[control_id]
             )
+            orthogonal_direction = orthogonal_control_direction(
+                unrelated_direction, target_direction
+            )
             random_direction = random_control_direction(
                 target_direction, seed=config["seed"] + case_index
             )
             directions = {
                 "jacobian": target_direction,
                 "unrelated": unrelated_direction,
+                "unrelated_orthogonal": orthogonal_direction,
                 "random": random_direction,
             }
             input_ids = model.encode(case["prompt"], max_length=config["max_seq_len"])
@@ -187,6 +203,9 @@ def main() -> None:
                     "seed": config["seed"] + case_index,
                     "target_logit": float(logits[target_id]),
                     "control_logit": float(logits[control_id]),
+                    "target_control_margin": float(
+                        logits[target_id] - logits[control_id]
+                    ),
                     "target_rank": token_rank(logits, target_id),
                     "control_rank": token_rank(logits, control_id),
                     "generated_ids": generated_ids,

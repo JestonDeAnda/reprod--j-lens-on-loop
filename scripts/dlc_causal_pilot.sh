@@ -6,7 +6,7 @@ NAS=/mnt/nas-save/nas-save
 REPO=$NAS/wangjunqi/j-lens-on-loop-qwen
 RUN_NAME=${RUN_NAME:?set RUN_NAME}
 OUT=$NAS/wangjunqi/j-lens-on-loop/runs/$RUN_NAME
-CONFIG=$REPO/configs/experiments/ouro-causal-pilot.json
+CONFIG=${CONFIG:-$REPO/configs/experiments/ouro-causal-pilot.json}
 
 mkdir -p "$OUT"
 exec > >(tee -a "$OUT/run.log") 2>&1

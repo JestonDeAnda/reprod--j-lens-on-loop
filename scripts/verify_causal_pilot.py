@@ -50,6 +50,11 @@ def main() -> None:
                     for row, base in zip(trials, paired, strict=True)
                 )
                 / len(trials),
+                "mean_target_control_margin_delta_vs_baseline": sum(
+                    row["target_control_margin"] - base["target_control_margin"]
+                    for row, base in zip(trials, paired, strict=True)
+                )
+                / len(trials),
                 "mean_target_rank_improvement_vs_baseline": sum(
                     base["target_rank"] - row["target_rank"]
                     for row, base in zip(trials, paired, strict=True)

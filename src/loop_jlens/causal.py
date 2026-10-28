@@ -30,6 +30,14 @@ def random_control_direction(reference: Tensor, *, seed: int) -> Tensor:
     return unit_direction(sample).to(reference.device)
 
 
+def orthogonal_control_direction(control: Tensor, target: Tensor) -> Tensor:
+    """Remove the target-direction component from a matched control direction."""
+
+    target = unit_direction(target)
+    control = control.detach().float().to(target.device)
+    return unit_direction(control - torch.dot(control, target) * target)
+
+
 def intervene_residual(
     hidden: Tensor,
     direction: Tensor,

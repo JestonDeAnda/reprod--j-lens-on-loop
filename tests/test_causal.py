@@ -4,6 +4,7 @@ from torch import nn
 
 from loop_jlens.causal import (
     jacobian_token_direction,
+    orthogonal_control_direction,
     random_control_direction,
     residual_intervention,
     token_rank,
@@ -24,6 +25,14 @@ def test_random_control_is_deterministic_and_unit_norm() -> None:
     second = random_control_direction(reference, seed=183)
     assert torch.equal(first, second)
     assert torch.linalg.vector_norm(first).item() == pytest.approx(1.0)
+
+
+def test_orthogonal_control_removes_target_component() -> None:
+    target = torch.tensor([1.0, 0.0, 0.0])
+    control = torch.tensor([1.0, 2.0, 0.0])
+    result = orthogonal_control_direction(control, target)
+    assert torch.dot(result, target).item() == pytest.approx(0.0)
+    assert torch.linalg.vector_norm(result).item() == pytest.approx(1.0)
 
 
 def test_residual_intervention_changes_only_selected_position() -> None:
