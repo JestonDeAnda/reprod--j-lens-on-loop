@@ -1,0 +1,12 @@
+{
+  "protocol_status": "released_prompts_loop_band_adaptation",
+  "architecture": "ouro",
+  "model": "/mnt/nas-save/nas-save/wangjunqi/ouro/models/Ouro-2.6B",
+  "lens": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop/runs/paper-fit-20261020T034458Z/ouro-paper/loop-4.lens.pt",
+  "data": "/mnt/nas-save/nas-save/wangjunqi/deps/jacobian-lens/data/experiments/verbal-report.json",
+  "band_start": 168,
+  "band_end": 190,
+  "candidates_per_category": 10,
+  "max_seq_len": 64,
+  "seed": 183
+}
