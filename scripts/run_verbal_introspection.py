@@ -18,6 +18,7 @@ from jlens.hooks import ActivationRecorder
 
 from loop_jlens.causal import (
     jacobian_token_direction,
+    random_control_direction,
     residual_intervention,
     token_rank,
 )
@@ -56,16 +57,34 @@ def trial_logits(
     layers: list[int],
     positions: list[int],
     token_id: int,
+    control_token_id: int,
+    direction_kind: str,
+    seed: int,
     strength: float,
     target_layer: int,
 ):
     with ExitStack() as stack:
         if strength:
             unembedding = model._lm_head.weight[token_id].detach().float().cpu()
+            control_unembedding = (
+                model._lm_head.weight[control_token_id].detach().float().cpu()
+            )
             for layer in layers:
-                direction = jacobian_token_direction(
+                target_direction = jacobian_token_direction(
                     lens.jacobians[layer], unembedding
                 )
+                if direction_kind == "target":
+                    direction = target_direction
+                elif direction_kind == "unrelated":
+                    direction = jacobian_token_direction(
+                        lens.jacobians[layer], control_unembedding
+                    )
+                elif direction_kind == "random":
+                    direction = random_control_direction(
+                        target_direction, seed=seed + layer
+                    )
+                else:
+                    raise ValueError(f"unsupported direction: {direction_kind}")
                 stack.enter_context(
                     residual_intervention(
                         model.layers[layer],
@@ -100,7 +119,9 @@ def main() -> None:
     model_id, tokenizer, model = load_model(model_args)
     lens = JacobianLens.load(config["lens"])
     target_layer = max(lens.source_layers) + 1
-    layers = list(range(config["band_start"], config["band_end"] + 1))
+    layers = config.get("band_layers") or list(
+        range(config["band_start"], config["band_end"] + 1)
+    )
     missing = [layer for layer in layers if layer not in lens.jacobians]
     if missing:
         raise ValueError(f"lens is missing band layers: {missing}")
@@ -112,14 +133,27 @@ def main() -> None:
         for prefill_name, prefill in data["prefills"].items():
             token_ids, positions = render_trial(tokenizer, data, prefill)
             input_ids = torch.tensor([token_ids], device=model.input_device)
-            for concept in data["concepts"]:
+            concepts = data["concepts"]
+            conditions = config.get("conditions") or [
+                {"name": f"target_{strength}", "direction": "target", "strength": strength}
+                for strength in config["strengths"]
+            ]
+            for concept_index, concept in enumerate(concepts):
                 pieces = tokenizer.encode(
                     " " + concept["surface"], add_special_tokens=False
                 )
                 if len(pieces) != 1:
                     continue
                 token_id = pieces[0]
-                for strength in config["strengths"]:
+                unrelated = concepts[(concept_index + 1) % len(concepts)]
+                control_pieces = tokenizer.encode(
+                    " " + unrelated["surface"], add_special_tokens=False
+                )
+                if len(control_pieces) != 1:
+                    continue
+                control_token_id = control_pieces[0]
+                for condition in conditions:
+                    strength = condition["strength"]
                     logits = trial_logits(
                         model,
                         input_ids,
@@ -127,6 +161,9 @@ def main() -> None:
                         layers=layers,
                         positions=positions,
                         token_id=token_id,
+                        control_token_id=control_token_id,
+                        direction_kind=condition["direction"],
+                        seed=config["seed"] + concept_index,
                         strength=strength,
                         target_layer=target_layer,
                     )
@@ -138,6 +175,9 @@ def main() -> None:
                         "surface": concept["surface"],
                         "token_id": token_id,
                         "strength": strength,
+                        "condition": condition["name"],
+                        "direction": condition["direction"],
+                        "control_surface": unrelated["surface"],
                         "rank": rank,
                         "reciprocal_rank": 1.0 / rank,
                         "band_layers": layers,
@@ -145,7 +185,9 @@ def main() -> None:
                     }
                     handle.write(json.dumps(row) + "\n")
                     handle.flush()
-                    aggregates.setdefault((prefill_name, strength), []).append(
+                    aggregates.setdefault(
+                        (prefill_name, condition["name"], strength), []
+                    ).append(
                         1.0 / rank
                     )
 
@@ -159,12 +201,13 @@ def main() -> None:
         "rows": [
             {
                 "prefill": prefill,
+                "condition": condition,
                 "strength": strength,
                 "trials": len(values),
                 "median_reciprocal_rank": statistics.median(values),
                 "mean_reciprocal_rank": statistics.fmean(values),
             }
-            for (prefill, strength), values in sorted(aggregates.items())
+            for (prefill, condition, strength), values in sorted(aggregates.items())
         ],
         "raw_output": str(raw_path),
     }

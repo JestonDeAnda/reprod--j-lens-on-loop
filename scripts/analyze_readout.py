@@ -20,7 +20,7 @@ from loop_jlens.analysis import estimate_operator_norm, readout_metrics
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("architecture", choices=("ouro", "nanbeige", "qwen"))
+    parser.add_argument("architecture", choices=("ouro", "huginn", "nanbeige", "qwen"))
     parser.add_argument("--model", required=True)
     parser.add_argument("--lens-dir", type=Path, required=True)
     parser.add_argument("--prompt-cache", type=Path, required=True)
@@ -218,9 +218,11 @@ def load_qwen(model_path: str, device_map: str):
 def operator_norm_rows(lens_path: Path, offsets: list[int]) -> list[dict]:
     lens = JacobianLens.load(str(lens_path))
     target = infer_target(lens)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     rows = []
     for source in select_sources(lens, target, offsets, all_sources=False):
-        estimate = estimate_operator_norm(lens.jacobians[source], max_iterations=40)
+        matrix = lens.jacobians[source].to(device)
+        estimate = estimate_operator_norm(matrix, max_iterations=40)
         rows.append(
             {
                 "lens_file": lens_path.name,

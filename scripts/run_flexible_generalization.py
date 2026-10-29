@@ -72,7 +72,9 @@ def main() -> None:
     model_id, tokenizer, model = load_model(model_args)
     lens = JacobianLens.load(config["lens"])
     target_layer = max(lens.source_layers) + 1
-    layers = list(range(config["band_start"], config["band_end"] + 1))
+    layers = config.get("band_layers") or list(
+        range(config["band_start"], config["band_end"] + 1)
+    )
     unembedding = model._lm_head.weight.detach().float().cpu()
 
     args.output.mkdir(parents=True, exist_ok=True)
