@@ -15,12 +15,12 @@ from fit_family import configure_exact_forward, load_model
 from jlens import JacobianLens
 from jlens.hooks import ActivationRecorder
 
-from loop_jlens.analysis import readout_metrics
+from loop_jlens.analysis import estimate_operator_norm, readout_metrics
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("architecture", choices=("ouro", "nanbeige"))
+    parser.add_argument("architecture", choices=("ouro", "nanbeige", "qwen"))
     parser.add_argument("--model", required=True)
     parser.add_argument("--lens-dir", type=Path, required=True)
     parser.add_argument("--prompt-cache", type=Path, required=True)
@@ -202,6 +202,37 @@ def evaluate_lens(
                 )
 
 
+def load_qwen(model_path: str, device_map: str):
+    from jlens import from_hf
+    from transformers import AutoModelForMultimodalLM, AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    hf_model = AutoModelForMultimodalLM.from_pretrained(
+        model_path,
+        torch_dtype=torch.bfloat16,
+        device_map=device_map,
+    )
+    return model_path, tokenizer, from_hf(hf_model, tokenizer)
+
+
+def operator_norm_rows(lens_path: Path, offsets: list[int]) -> list[dict]:
+    lens = JacobianLens.load(str(lens_path))
+    target = infer_target(lens)
+    rows = []
+    for source in select_sources(lens, target, offsets, all_sources=False):
+        estimate = estimate_operator_norm(lens.jacobians[source], max_iterations=40)
+        rows.append(
+            {
+                "lens_file": lens_path.name,
+                "source": source,
+                "target": target,
+                "offset": target - source,
+                **estimate.to_dict(),
+            }
+        )
+    return rows
+
+
 def main() -> None:
     args = parse_args()
     if args.period < 1 or args.prompts < 1 or args.top_k < 1:
@@ -222,7 +253,15 @@ def main() -> None:
         recurrences=16,
         seed=args.seed,
     )
-    model_id, tokenizer, model = load_model(model_args)
+    if args.architecture == "qwen":
+        model_id, tokenizer, model = load_qwen(args.model, args.device_map)
+    else:
+        model_id, tokenizer, model = load_model(model_args)
+    norms = [
+        row
+        for lens_path in lens_paths
+        for row in operator_norm_rows(lens_path, args.offsets)
+    ]
     raw_output = args.raw_output or args.output.with_suffix(".jsonl")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     raw_output.parent.mkdir(parents=True, exist_ok=True)
@@ -259,6 +298,7 @@ def main() -> None:
         "period": args.period,
         "raw_output": str(raw_output),
         "rows": finish_aggregates(aggregates, args.period),
+        "operator_norms": norms,
     }
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps({"output": str(args.output), "rows": len(payload["rows"])}))
