@@ -1,0 +1,16 @@
+{
+  "protocol_status": "released_prompts_loop_band_adaptation",
+  "architecture": "ouro",
+  "model": "/mnt/nas-save/nas-save/wangjunqi/ouro/models/Ouro-2.6B",
+  "lens": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop/runs/paper-fit-20261020T034458Z/ouro-paper/loop-4.lens.pt",
+  "data": "/mnt/nas-save/nas-save/wangjunqi/deps/jacobian-lens/data/experiments/probe-swap.json",
+  "band_layers": [
+    24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
+    72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94,
+    120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142,
+    168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190
+  ],
+  "strength": 1.0,
+  "max_seq_len": 128,
+  "seed": 183
+}
