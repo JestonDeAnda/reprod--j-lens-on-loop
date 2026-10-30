@@ -2,7 +2,7 @@
 set -euo pipefail
 
 NAS=/mnt/nas-save/nas-save
-REPO=$NAS/wangjunqi/j-lens-on-loop-qwen
+REPO=${REPO:-$NAS/wangjunqi/j-lens-on-loop-qwen}
 RUN_NAME=${RUN_NAME:?set RUN_NAME}
 OUT=$NAS/wangjunqi/j-lens-on-loop/runs/$RUN_NAME
 CONFIG=$REPO/configs/experiments/ouro-probe-swap-all-loops.json
