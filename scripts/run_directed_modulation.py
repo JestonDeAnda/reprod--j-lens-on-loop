@@ -25,12 +25,23 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def token_ids(tokenizer, words: list[str]) -> list[int]:
+def token_ids(tokenizer, words: list[str], *, allow_bare: bool = False) -> list[int]:
+    """Accept a single-token form, optionally including a bare digit token.
+
+    Ouro tokenizes ``" 8"`` as a separate space plus ``"8"``. Digit answers
+    therefore need the bare form, while ordinary words use the leading-space
+    token that appears inside a sentence.
+    """
+
     result = set()
     for word in words:
-        pieces = tokenizer.encode(" " + word.strip(), add_special_tokens=False)
-        if len(pieces) == 1:
-            result.add(pieces[0])
+        candidates = [" " + word.strip()]
+        if allow_bare:
+            candidates.append(word.strip())
+        for candidate in candidates:
+            pieces = tokenizer.encode(candidate, add_special_tokens=False)
+            if len(pieces) == 1:
+                result.add(pieces[0])
     return sorted(result)
 
 
@@ -45,7 +56,7 @@ def targets_for(data: dict, tokenizer, family: str) -> list[dict]:
     targets = []
     if family in {"math", "all"}:
         for item in data["math_problems"]:
-            ids = token_ids(tokenizer, [item["answer"]])
+            ids = token_ids(tokenizer, [item["answer"]], allow_bare=True)
             if ids:
                 targets.append(
                     {
