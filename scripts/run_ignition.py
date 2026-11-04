@@ -65,13 +65,23 @@ def explicit_pairs(pairs: list[list[str]], tokenizer, limit: int):
 
 
 def placeholder_position(model, template: str, word: str, token_id: int, max_length: int):
+    """Locate the substituted word after the template prefix.
+
+    A trailing space in the prefix is absorbed into the next token
+    (``visit {W}`` becomes ``ĠFrance``), so that token sits at
+    ``len(prefix_ids) - 1`` rather than at ``len(prefix_ids)``.
+    """
+
     prefix = template.split("{W}")[0]
     prompt = template.replace("{W}", word)
     input_ids = model.encode(prompt, max_length=max_length)
     prefix_ids = model.encode(prefix, max_length=max_length)
-    position = prefix_ids.shape[1]
-    if position < input_ids.shape[1] and int(input_ids[0, position]) == token_id:
-        return prompt, input_ids, position
+    candidates = [prefix_ids.shape[1]]
+    if prefix[-1:].isspace() and prefix_ids.shape[1] > 0:
+        candidates.insert(0, prefix_ids.shape[1] - 1)
+    for position in candidates:
+        if position < input_ids.shape[1] and int(input_ids[0, position]) == token_id:
+            return prompt, input_ids, position
     return None
 
 
@@ -255,6 +265,8 @@ def main() -> None:
     }
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     (args.output / "pair-curves.json").write_text(json.dumps(pair_rows, indent=2) + "\n")
+    if forwards == 0:
+        raise RuntimeError("no ignition forwards were scored; placeholder alignment failed")
     print(json.dumps({"forwards": forwards, "layers": len(layer_rows)}))
     print("RESULT: PASS")
 
