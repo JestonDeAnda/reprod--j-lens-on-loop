@@ -40,49 +40,47 @@ def canon_for(pool: dict, tokenizer, limit: int) -> list[tuple[str, int]]:
     for word in pool["pool"]:
         token_id = single_token(tokenizer, " " + word.strip())
         if token_id is None:
-            token_id = single_token(tokenizer, word.strip())
-        if token_id is None:
             continue
-        canon.append((word, token_id))
+        canon.append((word.strip(), token_id))
         if len(canon) == limit:
             break
     return canon
 
 
-def list_token(tokenizer, word: str, *, first: bool) -> int | None:
-    text = word if first else " " + word
-    return single_token(tokenizer, text)
-
-
-def align_list(model, tokenizer, words: list[str], max_length: int):
-    prompt = ", ".join(words)
+def align_list(model, tokenizer, words: list[str], token_ids: list[int], max_length: int):
+    """Prefix keeps every list word on its leading-space token."""
+    prompt = "List: " + ", ".join(words)
     bare = tokenizer.encode(prompt, add_special_tokens=False)
     full = model.encode(prompt, max_length=max_length)[0].tolist()
     if len(full) < len(bare):
         return None
     offset = next(
-        (index for index in range(len(full) - len(bare) + 1) if full[index : index + len(bare)] == bare),
+        (
+            index
+            for index in range(len(full) - len(bare) + 1)
+            if full[index : index + len(bare)] == bare
+        ),
         None,
     )
     if offset is None:
         return None
-    cursor = 0
+    prefix = tokenizer.encode("List:", add_special_tokens=False)
+    if bare[: len(prefix)] != prefix:
+        return None
+    cursor = len(prefix)
     commas = []
-    token_ids = []
-    for index, word in enumerate(words):
-        token_id = list_token(tokenizer, word, first=index == 0)
-        if token_id is None or cursor >= len(bare) or bare[cursor] != token_id:
+    for index, token_id in enumerate(token_ids):
+        if cursor >= len(bare) or bare[cursor] != token_id:
             return None
-        token_ids.append(token_id)
         cursor += 1
-        if index == len(words) - 1:
+        if index == len(token_ids) - 1:
             break
         comma = tokenizer.encode(",", add_special_tokens=False)
         if bare[cursor : cursor + len(comma)] != comma:
             return None
         commas.append(offset + cursor)
         cursor += len(comma)
-    return prompt, token_ids, commas
+    return prompt, commas
 
 
 def ranks_for(logits: torch.Tensor, token_ids: list[int]) -> torch.Tensor:
@@ -132,10 +130,11 @@ def main() -> None:
             for family in families:
                 selected.extend(rng.sample(canons[family], 20))
             words = [word for word, _token_id in selected]
-            located = align_list(model, tokenizer, words, config["max_seq_len"])
+            token_ids = [token_id for _word, token_id in selected]
+            located = align_list(model, tokenizer, words, token_ids, config["max_seq_len"])
             if located is None:
                 continue
-            prompt, token_ids, comma_positions = located
+            prompt, comma_positions = located
             input_ids = model.encode(prompt, max_length=config["max_seq_len"])
             with ActivationRecorder(model.layers, at=layers) as recorder:
                 model.forward(input_ids)
@@ -153,6 +152,7 @@ def main() -> None:
                 "protocol_status": "released_prompts_loop_band_adaptation",
                 "trial": trial,
                 "family_order": families,
+                "list_prefix": "List:",
                 "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
                 "counts": {},
             }
