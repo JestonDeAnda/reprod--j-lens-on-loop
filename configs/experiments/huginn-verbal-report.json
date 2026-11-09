@@ -1,0 +1,13 @@
+{
+  "protocol_status": "released_prompts_loop_band_adaptation",
+  "architecture": "huginn",
+  "model": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop/models/huginn-0125",
+  "lens": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop/runs/paper-fit-20261020T034458Z/huginn-tiling/recurrence-16.lens.pt",
+  "data": "/mnt/nas-save/nas-save/wangjunqi/deps/jacobian-lens/data/experiments/verbal-report.json",
+  "band_layers": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66],
+  "conditions": ["target", "random", "unrelated"],
+  "strength": 1.0,
+  "candidates_per_category": 10,
+  "max_seq_len": 64,
+  "seed": 183
+}
