@@ -26,6 +26,21 @@ from loop_jlens.causal import (
 )
 
 
+def load_configured_model(config: dict, device_map: str):
+    if config["architecture"] == "qwen":
+        from analyze_readout import load_qwen
+
+        return load_qwen(config["model"], device_map)
+    model_args = SimpleNamespace(
+        architecture=config["architecture"],
+        model=config["model"],
+        device_map=device_map,
+        recurrences=16,
+        seed=config["seed"],
+    )
+    return load_model(model_args)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
@@ -134,17 +149,14 @@ def main() -> None:
     items = json.loads(data_path.read_text())["items"]
     configure_exact_forward()
     torch.manual_seed(config["seed"])
-    model_args = SimpleNamespace(
-        architecture=config["architecture"],
-        model=config["model"],
-        device_map=args.device_map,
-        recurrences=16,
-        seed=config["seed"],
-    )
-    model_id, tokenizer, model = load_model(model_args)
+    model_id, tokenizer, model = load_configured_model(config, args.device_map)
     lens = JacobianLens.load(config["lens"])
     target_layer = max(lens.source_layers) + 1
     layers = config["band_layers"]
+    missing = [layer for layer in layers if layer not in lens.jacobians]
+    if missing:
+        raise RuntimeError(f"lens is missing Jacobians for layers {missing[:8]}")
+    protocol = config.get("protocol_status", "released_prompts_loop_band_adaptation")
     strength = config.get("strength", 1.0)
     unembedding = model._lm_head.weight.detach().float().cpu()
 
@@ -223,7 +235,7 @@ def main() -> None:
                     model, input_ids, target_layer=target_layer, swaps=swaps
                 )
                 row = {
-                    "protocol_status": "released_prompts_loop_band_adaptation",
+                    "protocol_status": protocol,
                     "name": item["name"],
                     "category": item["category"],
                     "prompt_sha256": hashlib.sha256(item["prompt"].encode()).hexdigest(),
@@ -244,8 +256,10 @@ def main() -> None:
                 handle.write(json.dumps(row, ensure_ascii=False) + "\n")
                 handle.flush()
 
+    if not records:
+        raise RuntimeError("no probe-swap trials were scored")
     summary = {
-        "protocol_status": "released_prompts_loop_band_adaptation",
+        "protocol_status": protocol,
         "model": model_id,
         "lens": config["lens"],
         "data": str(data_path),

@@ -1,0 +1,13 @@
+{
+  "protocol_status": "released_prompts_baseline_band",
+  "architecture": "qwen",
+  "model": "/tmp/Qwen3.6-27B",
+  "lens": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop-qwen/runs/qwen-full-20261027T093500Z/lenses/final.lens.pt",
+  "data": "/mnt/nas-save/nas-save/wangjunqi/deps/jacobian-lens/data/experiments/verbal-report.json",
+  "band_layers": [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48],
+  "conditions": ["target", "random", "unrelated"],
+  "strength": 1.0,
+  "candidates_per_category": 10,
+  "max_seq_len": 64,
+  "seed": 183
+}
