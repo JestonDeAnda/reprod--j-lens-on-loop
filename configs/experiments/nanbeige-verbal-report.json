@@ -1,0 +1,16 @@
+{
+  "protocol_status": "released_prompts_architecture_extension",
+  "architecture": "nanbeige",
+  "model": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop-nanbeige/models/Nanbeige4.2-3B",
+  "lens": "/mnt/nas-save/nas-save/wangjunqi/j-lens-on-loop-nanbeige/runs/nanbeige-full-20261022T125900Z/lenses/loop-2.lens.pt",
+  "data": "/mnt/nas-save/nas-save/wangjunqi/deps/jacobian-lens/data/experiments/verbal-report.json",
+  "band_layers": [
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+    22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42
+  ],
+  "conditions": ["target", "random", "unrelated"],
+  "strength": 1.0,
+  "candidates_per_category": 10,
+  "max_seq_len": 64,
+  "seed": 183
+}
